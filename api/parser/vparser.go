@@ -41,55 +41,27 @@ func (p *ParsedInfo) String() string {
 	return fmt.Sprintf("%v (%v) %v %v", p.Name, p.Version, p.Os, p.Language)
 }
 
-func ParseVersionString(input string) *ParsedInfo {
+func ParseVersionString(clientType, clientVersion, osType, goVersion string) *ParsedInfo {
 	var output ParsedInfo
 
-	// Quick fix to filter out enodes.
-	if strings.Contains(input, "enode://") {
-		return nil
-	}
+	output.Name = strings.ToLower(clientType)
+	output.Label = strings.ToLower(clientType)
+	output.Version = parseVersion(clientVersion)
+	output.Os = parseOS(osType)
+	output.Language = parseLanguage(goVersion)
 
-	// If there exists more than one version, don't count it
-	if strings.Count(input, "/v") > 1 {
-		return nil
-	}
-
-	// version string consists of four components, divided by /
-	s := strings.Split(strings.ToLower(input), "/")
-	l := len(s)
-	output.Name = strings.ToLower(s[0])
-	if output.Name == "" {
-		return nil
-	}
-
-	if l == 5 || l == 7 {
-		output.Label = s[1]
-		output.Version = parseVersion(s[2])
-		output.Os = parseOS(s[3])
-		output.Language = parseLanguage(s[4])
-	} else if l == 4 {
-		output.Version = parseVersion(s[1])
-		output.Os = parseOS(s[2])
-		output.Language = parseLanguage(s[3])
-	} else if (l == 1 || l == 0) && (output.Name == "tmp" || output.Name == "eth2") {
-		// These are usually "tmp" nodes that cannot be parsed.
-	} else {
-		fmt.Printf("Parser Error: Invalid length of '%d' for input: '%s'\n", l, input)
-	}
-
-	if output.Version.Error {
-		fmt.Printf(" -> Error Parsing: '%s', %v\n", input, output)
-		return nil
-	}
 	return &output
 }
 
 func parseLanguage(input string) LanguageInfo {
 	var languageInfo LanguageInfo
+	if input == "" {
+		return languageInfo
+	}
 	match := reLanguage.FindStringSubmatch(input)
 
 	if len(match) > 0 {
-		languageInfo.Name = match[reLanguage.SubexpIndex("name")]
+		languageInfo.Name = strings.ToLower(match[reLanguage.SubexpIndex("name")])
 		languageInfo.Version = match[reLanguage.SubexpIndex("version")]
 	}
 
@@ -98,6 +70,10 @@ func parseLanguage(input string) LanguageInfo {
 
 func parseVersion(input string) Version {
 	var vers Version
+	if input == "" {
+		return vers
+	}
+
 	split := strings.Split(input, "-")
 	split_length := len(split)
 	switch len(split) {
@@ -160,14 +136,18 @@ func parseVersionNumber(input string) (int, int, int) {
 }
 
 func parseOS(input string) OSInfo {
-	split := strings.Split(input, "-")
 	var osInfo OSInfo
+	if input == "" {
+		return osInfo
+	}
+
+	split := strings.Split(input, "-")
 	switch len(split) {
 	case 2:
-		osInfo.Architecture = split[1]
+		osInfo.Architecture = strings.ToLower(split[1])
 		fallthrough
 	case 1:
-		osInfo.Os = split[0]
+		osInfo.Os = strings.ToLower(split[0])
 	}
 	return osInfo
 }

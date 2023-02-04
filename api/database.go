@@ -68,7 +68,7 @@ func InsertCrawledNodes(db *sql.DB, crawledNodes []input.CrawledNode) error {
 	}
 
 	for _, node := range crawledNodes {
-		parsed := parser.ParseVersionString(node.ClientType)
+		parsed := parser.ParseVersionString(node.ClientType, node.ClientVersion, node.OsType, node.GoVersion)
 		if parsed != nil {
 			_, err = stmt.Exec(
 				node.ID,

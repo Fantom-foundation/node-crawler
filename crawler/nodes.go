@@ -1,4 +1,4 @@
-// Copyright 2019 The go-ethereum Authors
+// Copyright 2019 The go-ethm5.xlargeereum Authors
 // This file is part of go-ethereum.
 //
 // go-ethereum is free software: you can redistribute it and/or modify
@@ -51,6 +51,12 @@ type nodeJSON struct {
 	Info *clientInfo `json:"clientInfo,omitempty"`
 
 	TooManyPeers bool `json:"tooManyPeers,omitempty"`
+	CouldNotDial bool `json:"couldNotDial,omitempty"`
+	CannotSetTimer bool `json:"cannotSetTimer,omitempty"`
+	WriteHelloFailure bool `json:"writeHelloFailure,omitempty"`
+	ReadHelloFailure bool `json:"readHelloFailure,omitempty"`
+	GetStatusError bool `json:"getStatusError,omitempty"`
+	ReadStatusError bool `json:"readStatusError,omitempty"`
 }
 
 func loadNodesJSON(file string) nodeSet {

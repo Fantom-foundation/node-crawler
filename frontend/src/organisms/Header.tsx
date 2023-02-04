@@ -20,7 +20,7 @@ export function Note() {
   return (
   <Alert status="info" onClick={hideNote} mt={4}>
     <AlertIcon />
-     This crawler only has a partial view of the Ethereum network and lists only nodes discovered in last 24 hours. This is not a full count of every node on the network.
+     This crawler only has a partial view of the network and lists only nodes discovered in last 24 hours. This is not a full count of every node on the network.
     <Spacer /><Button variant="ghost" iconSpacing={0} size="sm" leftIcon={<VscClose />} title="Remove note" />
   </Alert>
   )
@@ -32,7 +32,7 @@ export function Header() {
       <Flex direction={['column', 'row', 'row']} justifySelf="flex-start" fontSize={16} fontWeight={400}>
         <HStack>
           <Logo h="32px" pointerEvents="none" />
-          <Text fontWeight="bold" fontSize="larger" whiteSpace="nowrap">Ethereum Nodes</Text>
+          <Text fontWeight="bold" fontSize="larger" whiteSpace="nowrap">DevP2P Nodes</Text>
         </HStack>
       </Flex>
       <ColorModeSwitcher justifySelf="flex-end" />

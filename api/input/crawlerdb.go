@@ -9,6 +9,10 @@ type CrawledNode struct {
 	ID              string
 	Now             string
 	ClientType      string
+	ClientVersion   string
+	ClientDesc      string
+	OsType          string
+	GoVersion       string
 	SoftwareVersion uint64
 	Capabilities    string
 	NetworkID       uint64
@@ -17,7 +21,7 @@ type CrawledNode struct {
 }
 
 func ReadRecentNodes(db *sql.DB, lastCheck time.Time) ([]CrawledNode, error) {
-	queryStmt := "SELECT ID, Now, ClientType, SoftwareVersion, Capabilities, NetworkID, Country, " +
+	queryStmt := "SELECT ID, Now, ClientType, ClientVersion, ClientDesc, OsType, GoVersion, SoftwareVersion, Capabilities, NetworkID, Country, " +
 		"ForkID FROM nodes WHERE Now > ?"
 	// TODO do a proper check here ^
 	rows, err := db.Query(queryStmt, lastCheck.String())
@@ -29,7 +33,7 @@ func ReadRecentNodes(db *sql.DB, lastCheck time.Time) ([]CrawledNode, error) {
 	var nodes []CrawledNode
 	for rows.Next() {
 		var node CrawledNode
-		err = rows.Scan(&node.ID, &node.Now, &node.ClientType, &node.SoftwareVersion, &node.Capabilities, &node.NetworkID, &node.Country, &node.ForkID,)
+		err = rows.Scan(&node.ID, &node.Now, &node.ClientType, &node.ClientVersion, &node.ClientDesc, &node.OsType, &node.GoVersion, &node.SoftwareVersion, &node.Capabilities, &node.NetworkID, &node.Country, &node.ForkID,)
 		if err != nil {
 			return nil, err
 		}

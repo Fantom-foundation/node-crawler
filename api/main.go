@@ -15,8 +15,8 @@ import (
 )
 
 var (
-	crawlerDBPath = flag.String("crawler-db-path", "nodetable", "Crawler Database SQLite Path")
-	apiDBPath     = flag.String("api-db-path", "nodes", "API Database SQLite Path")
+	crawlerDBPath = flag.String("crawler-db-path", "operadb.sqlite", "Crawler Database SQLite Path")
+	apiDBPath     = flag.String("api-db-path", "apidb.sqlite", "API Database SQLite Path")
 	dropNodesTime = flag.Duration("drop-time", 24*time.Hour, "Time to drop crawled nodes")
 )
 

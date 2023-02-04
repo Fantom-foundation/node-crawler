@@ -20,3 +20,8 @@ nodetable
 nodes
 node-crawler-backend.exe
 node-crawler-backend
+
+crawlerdb
+operadb.sqlite
+apidb.sqlite
+vendor

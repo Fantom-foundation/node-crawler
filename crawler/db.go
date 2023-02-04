@@ -19,16 +19,19 @@ import (
 
 func updateNodes(db *sql.DB, geoipDB *geoip2.Reader, nodes []nodeJSON) error {
 	log.Info("Writing nodes to db", "nodes", len(nodes))
-
 	now := time.Now()
 	tx, err := db.Begin()
 	if err != nil {
 		return err
 	}
 	stmt, err := tx.Prepare(
-		`insert into nodes(ID, 
+		`INSERT OR IGNORE into nodes(ID, 
 			Now,
 			ClientType,
+            ClientDesc,
+            ClientVersion,
+            OsType,
+            GoVersion,
 			PK,
 			SoftwareVersion,
 			Capabilities,
@@ -45,21 +48,43 @@ func updateNodes(db *sql.DB, geoipDB *geoip2.Reader, nodes []nodeJSON) error {
 			LastSeen,
 			Seq,
 			Score,
-			ConnType) 
-			values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+			ConnType,
+            TooManyPeers,
+            CouldNotDial,
+            CannotSetTimer,
+            WriteHelloFailure,
+            ReadHelloFailure,
+            GetStatusError,
+            ReadStatusError) 
+			values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+
 	if err != nil {
 		return err
 	}
 	defer stmt.Close()
 
 	for _, n := range nodes {
+
+		// check if the node is already present in the DB
+		sqlStmt := `SELECT ID FROM nodes WHERE ID = ?`
+		err1 := db.QueryRow(sqlStmt, `ID`).Scan(n.N.ID().String())
+		if err1 != nil {
+			if err1 != sql.ErrNoRows {
+				log.Warn("Node already present in database : ", n.N.ID().String())
+				continue
+			}
+		}
+
+
 		info := &clientInfo{}
 		if n.Info != nil {
 			info = n.Info
 		}
 
-		if info.ClientType == "" && n.TooManyPeers {
-			info.ClientType = "tmp"
+		if info.ClientType == "" {
+			if n.TooManyPeers || n.CouldNotDial || n.CannotSetTimer || n.WriteHelloFailure || n.ReadHelloFailure || n.GetStatusError || n.ReadStatusError {
+				info.ClientType = "NA"
+			}
 		}
 		connType := ""
 		var portUDP enr.UDP
@@ -106,6 +131,10 @@ func updateNodes(db *sql.DB, geoipDB *geoip2.Reader, nodes []nodeJSON) error {
 			n.N.ID().String(),
 			now.String(),
 			info.ClientType,
+			info.ClientDesc,
+			info.ClientVersion,
+			info.OsType,
+			info.GoVersion,
 			pk,
 			info.SoftwareVersion,
 			caps,
@@ -123,6 +152,13 @@ func updateNodes(db *sql.DB, geoipDB *geoip2.Reader, nodes []nodeJSON) error {
 			n.Seq,
 			n.Score,
 			connType,
+			n.TooManyPeers,
+			n.CouldNotDial,
+			n.CannotSetTimer,
+			n.WriteHelloFailure,
+			n.ReadHelloFailure,
+			n.GetStatusError,
+			n.ReadStatusError,
 		)
 		if err != nil {
 			return err
@@ -138,6 +174,10 @@ func createDB(db *sql.DB) error {
 		ID text not null, 
 		Now text not null,
 		ClientType text,
+		ClientDesc text,
+		ClientVersion text,
+		OsType text,
+        GoVersion text,
 		PK text,
 		SoftwareVersion text,
 		Capabilities text,
@@ -155,7 +195,14 @@ func createDB(db *sql.DB) error {
 		Seq number,
 		Score number,
 		ConnType text,
-		PRIMARY KEY (ID, Now)
+		TooManyPeers bool,
+        CouldNotDial bool,
+        CannotSetTimer bool,
+        WriteHelloFailure bool,
+        ReadHelloFailure bool,
+        GetStatusError bool,
+        ReadStatusError bool,
+		PRIMARY KEY (ID)
 	);
 	delete from nodes;
 	`

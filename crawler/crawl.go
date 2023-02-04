@@ -47,9 +47,14 @@ type crawler struct {
 	reqCh   chan *enode.Node
 	workers int
 
+
+	// errors
+	tooManyPeersError  uint64
+
 	sync.WaitGroup
 	sync.RWMutex
 }
+
 
 type resolver interface {
 	RequestENR(*enode.Node) (*enode.Node, error)
@@ -155,6 +160,12 @@ func (c *crawler) getClientInfoLoop() {
 			}
 
 			var tooManyPeers bool
+			var couldNotDial bool
+			var cannotSetTimer bool
+			var writeHelloFailure bool
+			var readHelloFailure bool
+			var getStatusError bool
+			var readStatusError bool
 			var scoreInc int
 
 			info, err := getClientInfo(c.genesis, c.networkID, c.nodeURL, n)
@@ -162,6 +173,18 @@ func (c *crawler) getClientInfoLoop() {
 				log.Warn("GetClientInfo failed", "error", err, "nodeID", n.ID())
 				if strings.Contains(err.Error(), "too many peers") {
 					tooManyPeers = true
+				} else if strings.Contains(err.Error(), "couldNotDial") {
+					couldNotDial = true
+				} else if strings.Contains(err.Error(), "cannot set conn deadline") {
+					cannotSetTimer = true
+				} else if strings.Contains(err.Error(), "writeHelloFailure") {
+					writeHelloFailure = true
+				} else if strings.Contains(err.Error(), "readHelloFailure") {
+					readHelloFailure = true
+				} else if strings.Contains(err.Error(), "getStatusError") {
+					getStatusError = true
+				} else if strings.Contains(err.Error(), "readStatusError") {
+					readStatusError = true
 				}
 			} else {
 				scoreInc = 10
@@ -171,6 +194,10 @@ func (c *crawler) getClientInfoLoop() {
 				log.Info(
 					"Updating node info",
 					"client_type", info.ClientType,
+					"clientVersion",  info.ClientVersion,
+					"clientDescription", info.ClientDesc,
+					"osType", info.OsType,
+					"goVersion", info.GoVersion,
 					"version", info.SoftwareVersion,
 					"network_id", info.NetworkID,
 					"caps", info.Capabilities,
@@ -190,6 +217,12 @@ func (c *crawler) getClientInfoLoop() {
 				node.Info = info
 			}
 			node.TooManyPeers = tooManyPeers
+			node.CouldNotDial = couldNotDial
+			node.CannotSetTimer = cannotSetTimer
+			node.WriteHelloFailure = writeHelloFailure
+			node.ReadHelloFailure = readHelloFailure
+			node.GetStatusError = getStatusError
+			node.ReadStatusError  = readStatusError
 			node.Score += scoreInc
 			c.output[n.ID()] = node
 			c.Unlock()
@@ -239,3 +272,4 @@ func (c *crawler) updateNode(n *enode.Node) {
 		c.output[n.ID()] = node
 	}
 }
+

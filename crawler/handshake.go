@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/big"
 	"net"
+	"strings"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -29,6 +30,10 @@ var (
 
 type clientInfo struct {
 	ClientType      string
+	ClientVersion   string
+	ClientDesc      string
+	OsType          string
+	GoVersion       string
 	SoftwareVersion uint64
 	Capabilities    []p2p.Cap
 	NetworkID       uint64
@@ -43,7 +48,7 @@ func getClientInfo(genesis *core.Genesis, networkID uint64, nodeURL string, n *e
 
 	conn, sk, err := dial(n)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "couldNotDial: ")
 	}
 	defer conn.Close()
 
@@ -52,10 +57,10 @@ func getClientInfo(genesis *core.Genesis, networkID uint64, nodeURL string, n *e
 	}
 
 	if err = writeHello(conn, sk); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "writeHelloFailure")
 	}
 	if err = readHello(conn, &info); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "readHelloFailure")
 	}
 
 	// If node provides no eth version, we can skip it.
@@ -64,19 +69,20 @@ func getClientInfo(genesis *core.Genesis, networkID uint64, nodeURL string, n *e
 	}
 
 	if err = conn.SetDeadline(time.Now().Add(15 * time.Second)); err != nil {
+		log.Warn("SetDeadline-2: " + err.Error())
 		return nil, errors.Wrap(err, "cannot set conn deadline")
 	}
 
 	s := getStatus(genesis.Config, uint32(conn.negotiatedProtoVersion), genesis.ToBlock(nil).Hash(), networkID, nodeURL)
 	if err = conn.Write(s); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "getStatusError")
 	}
 
 	// Regardless of whether we wrote a status message or not, the remote side
 	// might still send us one.
 
 	if err = readStatus(conn, &info); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "readStatusError")
 	}
 
 	// Disconnect from client
@@ -144,7 +150,33 @@ func readHello(conn *Conn, info *clientInfo) error {
 		}
 		info.Capabilities = msg.Caps
 		info.SoftwareVersion = msg.Version
-		info.ClientType = msg.Name
+
+		splitClient := strings.Split(msg.Name, "/")
+		if len(splitClient) == 4 {
+			info.ClientType = splitClient[0]
+			info.ClientDesc = ""
+			info.ClientVersion = splitClient[1]
+			info.OsType = splitClient[2]
+			info.GoVersion = splitClient[3]
+		} else if len(splitClient) == 5 {
+			info.ClientType = splitClient[0]
+			info.ClientDesc = splitClient[1]
+			info.ClientVersion = splitClient[2]
+			info.OsType = splitClient[3]
+			info.GoVersion = splitClient[4]
+		} else if len(splitClient) == 6 {
+			info.ClientType = splitClient[0]
+			info.ClientDesc = fmt.Sprintf("%v/%v",splitClient[2],  splitClient[2])
+			info.ClientVersion = splitClient[1]
+			info.OsType = splitClient[4]
+			info.GoVersion = splitClient[5]
+		} else {
+			info.ClientType = msg.Name
+			info.ClientDesc = ""
+			info.ClientVersion = ""
+			info.OsType = ""
+			info.GoVersion = ""
+		}
 	case *Disconnect:
 		return fmt.Errorf("bad hello handshake: %v", msg.Reason.Error())
 	case *Error:
