@@ -48,19 +48,19 @@ func getClientInfo(genesis *core.Genesis, networkID uint64, nodeURL string, n *e
 
 	conn, sk, err := dial(n)
 	if err != nil {
-		return nil, errors.Wrap(err, "couldNotDial: ")
+		return &info, errors.Wrap(err, "couldNotDial: ")
 	}
 	defer conn.Close()
 
 	if err = conn.SetDeadline(time.Now().Add(5 * time.Second)); err != nil {
-		return nil, errors.Wrap(err, "cannot set conn deadline")
+		return &info, errors.Wrap(err, "cannot set conn deadline for hello")
 	}
 
 	if err = writeHello(conn, sk); err != nil {
-		return nil, errors.Wrap(err, "writeHelloFailure")
+		return &info, errors.Wrap(err, "writeHelloFailure")
 	}
 	if err = readHello(conn, &info); err != nil {
-		return nil, errors.Wrap(err, "readHelloFailure")
+		return &info, errors.Wrap(err, "readHelloFailure")
 	}
 
 	// If node provides no eth version, we can skip it.
@@ -70,19 +70,19 @@ func getClientInfo(genesis *core.Genesis, networkID uint64, nodeURL string, n *e
 
 	if err = conn.SetDeadline(time.Now().Add(15 * time.Second)); err != nil {
 		log.Warn("SetDeadline-2: " + err.Error())
-		return nil, errors.Wrap(err, "cannot set conn deadline")
+		return &info, errors.Wrap(err, "cannot set conn deadline for status")
 	}
 
 	s := getStatus(genesis.Config, uint32(conn.negotiatedProtoVersion), genesis.ToBlock(nil).Hash(), networkID, nodeURL)
 	if err = conn.Write(s); err != nil {
-		return nil, errors.Wrap(err, "getStatusError")
+		return &info, errors.Wrap(err, "getStatusError")
 	}
 
 	// Regardless of whether we wrote a status message or not, the remote side
 	// might still send us one.
 
 	if err = readStatus(conn, &info); err != nil {
-		return nil, errors.Wrap(err, "readStatusError")
+		return &info, errors.Wrap(err, "readStatusError")
 	}
 
 	// Disconnect from client

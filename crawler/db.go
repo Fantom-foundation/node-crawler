@@ -25,7 +25,7 @@ func updateNodes(db *sql.DB, geoipDB *geoip2.Reader, nodes []nodeJSON) error {
 		return err
 	}
 	stmt, err := tx.Prepare(
-		`INSERT OR IGNORE into nodes(ID, 
+		`INSERT OR REPLACE into nodes(ID, 
 			Now,
 			ClientType,
             ClientDesc,
@@ -49,14 +49,9 @@ func updateNodes(db *sql.DB, geoipDB *geoip2.Reader, nodes []nodeJSON) error {
 			Seq,
 			Score,
 			ConnType,
-            TooManyPeers,
-            CouldNotDial,
-            CannotSetTimer,
-            WriteHelloFailure,
-            ReadHelloFailure,
-            GetStatusError,
-            ReadStatusError) 
-			values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+            ErrorReason,
+            ErrorString) 
+			values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
 
 	if err != nil {
 		return err
@@ -65,24 +60,13 @@ func updateNodes(db *sql.DB, geoipDB *geoip2.Reader, nodes []nodeJSON) error {
 
 	for _, n := range nodes {
 
-		// check if the node is already present in the DB
-		sqlStmt := `SELECT ID FROM nodes WHERE ID = ?`
-		err1 := db.QueryRow(sqlStmt, `ID`).Scan(n.N.ID().String())
-		if err1 != nil {
-			if err1 != sql.ErrNoRows {
-				log.Warn("Node already present in database : ", n.N.ID().String())
-				continue
-			}
-		}
-
-
 		info := &clientInfo{}
 		if n.Info != nil {
 			info = n.Info
 		}
 
 		if info.ClientType == "" {
-			if n.TooManyPeers || n.CouldNotDial || n.CannotSetTimer || n.WriteHelloFailure || n.ReadHelloFailure || n.GetStatusError || n.ReadStatusError {
+			if n.ErrorReason == -1 {
 				info.ClientType = "NA"
 			}
 		}
@@ -152,13 +136,8 @@ func updateNodes(db *sql.DB, geoipDB *geoip2.Reader, nodes []nodeJSON) error {
 			n.Seq,
 			n.Score,
 			connType,
-			n.TooManyPeers,
-			n.CouldNotDial,
-			n.CannotSetTimer,
-			n.WriteHelloFailure,
-			n.ReadHelloFailure,
-			n.GetStatusError,
-			n.ReadStatusError,
+			n.ErrorReason,
+			n.ErrorString,
 		)
 		if err != nil {
 			return err
@@ -195,13 +174,8 @@ func createDB(db *sql.DB) error {
 		Seq number,
 		Score number,
 		ConnType text,
-		TooManyPeers bool,
-        CouldNotDial bool,
-        CannotSetTimer bool,
-        WriteHelloFailure bool,
-        ReadHelloFailure bool,
-        GetStatusError bool,
-        ReadStatusError bool,
+		ErrorReason number,
+		ErrorString text,
 		PRIMARY KEY (ID)
 	);
 	delete from nodes;

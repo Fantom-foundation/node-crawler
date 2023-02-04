@@ -159,32 +159,18 @@ func (c *crawler) getClientInfoLoop() {
 				return
 			}
 
-			var tooManyPeers bool
-			var couldNotDial bool
-			var cannotSetTimer bool
-			var writeHelloFailure bool
-			var readHelloFailure bool
-			var getStatusError bool
-			var readStatusError bool
+			errorReason := 0
+			errorString := ""
 			var scoreInc int
 
 			info, err := getClientInfo(c.genesis, c.networkID, c.nodeURL, n)
 			if err != nil {
-				log.Warn("GetClientInfo failed", "error", err, "nodeID", n.ID())
-				if strings.Contains(err.Error(), "too many peers") {
-					tooManyPeers = true
-				} else if strings.Contains(err.Error(), "couldNotDial") {
-					couldNotDial = true
-				} else if strings.Contains(err.Error(), "cannot set conn deadline") {
-					cannotSetTimer = true
-				} else if strings.Contains(err.Error(), "writeHelloFailure") {
-					writeHelloFailure = true
-				} else if strings.Contains(err.Error(), "readHelloFailure") {
-					readHelloFailure = true
-				} else if strings.Contains(err.Error(), "getStatusError") {
-					getStatusError = true
-				} else if strings.Contains(err.Error(), "readStatusError") {
-					readStatusError = true
+				if strings.Contains(err.Error(),"too many peers") {
+					info.ClientType = "too many peers"
+				} else {
+					errorReason = -1
+					errorString = err.Error()
+					log.Warn("GetClientInfo failed", "error", err, "nodeID", n.ID())
 				}
 			} else {
 				scoreInc = 10
@@ -216,13 +202,8 @@ func (c *crawler) getClientInfoLoop() {
 			if info != nil {
 				node.Info = info
 			}
-			node.TooManyPeers = tooManyPeers
-			node.CouldNotDial = couldNotDial
-			node.CannotSetTimer = cannotSetTimer
-			node.WriteHelloFailure = writeHelloFailure
-			node.ReadHelloFailure = readHelloFailure
-			node.GetStatusError = getStatusError
-			node.ReadStatusError  = readStatusError
+			node.ErrorReason = errorReason
+			node.ErrorString = errorString
 			node.Score += scoreInc
 			c.output[n.ID()] = node
 			c.Unlock()
@@ -237,7 +218,7 @@ func (c *crawler) updateNode(n *enode.Node) {
 	node, ok := c.output[n.ID()]
 
 	// Skip validation of recently-seen nodes.
-	if ok && !node.TooManyPeers && time.Since(node.LastCheck) < c.revalidateInterval {
+	if ok && time.Since(node.LastCheck) < c.revalidateInterval {
 		return
 	}
 

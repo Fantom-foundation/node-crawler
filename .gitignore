@@ -25,3 +25,5 @@ crawlerdb
 operadb.sqlite
 apidb.sqlite
 vendor
+
+.idea

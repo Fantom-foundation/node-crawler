@@ -1,6 +1,6 @@
-# Ethereum Node Crawler
+# Opera Node Crawler
 
-Crawls the network and visualizes collected data. This repository includes backend, API and frontend for Ethereum network crawler. 
+Crawls the network and visualizes collected data. This repository includes backend, API and frontend for opera network crawler. 
 
 [Backend](./crawler) is based on [devp2p](https://github.com/ethereum/go-ethereum/tree/master/cmd/devp2p) tool. It tries to connect to discovered nodes, fetches info about them and creates a database. [API](./api) software reads raw node database, filters it, caches and serves as API. [Frontend](./frontend) is a web application which reads data from the API and visualizes them as a dashboard. 
 
@@ -148,6 +148,6 @@ Make sure you have [Docker](https://github.com/docker/docker-ce/releases) and [d
 ```
 docker-compose up
 ```
-
-
+---
+### Forked from https://github.com/ethereum/node-crawler
 

@@ -50,13 +50,8 @@ type nodeJSON struct {
 
 	Info *clientInfo `json:"clientInfo,omitempty"`
 
-	TooManyPeers bool `json:"tooManyPeers,omitempty"`
-	CouldNotDial bool `json:"couldNotDial,omitempty"`
-	CannotSetTimer bool `json:"cannotSetTimer,omitempty"`
-	WriteHelloFailure bool `json:"writeHelloFailure,omitempty"`
-	ReadHelloFailure bool `json:"readHelloFailure,omitempty"`
-	GetStatusError bool `json:"getStatusError,omitempty"`
-	ReadStatusError bool `json:"readStatusError,omitempty"`
+	ErrorReason int `json:"errorReason,omitempty"`
+	ErrorString string `json:"errorString,omitempty"`
 }
 
 func loadNodesJSON(file string) nodeSet {
