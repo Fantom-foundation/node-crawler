@@ -39,16 +39,36 @@ export const knownNodesFilter: FilterGroup[] = [
   [{ name: 'name', value: 'swarm' }],
   [{ name: 'name', value: 'thor' }],
   [{ name: 'name', value: 'wormholes' }],
-
+  [{ name: 'name', value: 'gubiq' }],
+  [{ name: 'name', value: 'mix-geth' }],
+  [{ name: 'name', value: 'q-client' }],
+  [{ name: 'name', value: 'qit' }],
+  [{ name: 'name', value: 'qk_node' }],
 
   [{ name: 'name', value: 'readhellofailure_too_many_peers' }],
+  [{ name: 'name', value: 'readhellofailure_expected_input_list_for_main.disconnect' }],
+  [{ name: 'name', value: 'readhellofailure_eof' }],
+  [{ name: 'name', value: 'readhellofailure_connection_reset_by_peer' }],
+  [{ name: 'name', value: 'writehellofailure_connection_reset_by_peer' }],
+
   [{ name: 'name', value: 'readstatuserror_too_many_peers' }],
   [{ name: 'name', value: 'readstatuserror_37' }],
   [{ name: 'name', value: 'readstatuserror_33' }],
   [{ name: 'name', value: 'readstatuserror_expected_input_list_for_main.disconnect' }],
-  [{ name: 'name', value: 'readhellofailure_expected_input_list_for_main.disconnect' }],
+  [{ name: 'name', value: 'readstatuserror_disconnect_requested' }],
+  [{ name: 'name', value: 'readstatuserror_eof' }],
+  [{ name: 'name', value: 'readstatuserror_subprotocol_error' }],
+  [{ name: 'name', value: 'readstatuserror_useless_peer' }],
   [{ name: 'name', value: 'readstatuserror_error_decoding_networkid' }],
-  [{ name: 'name', value: 'readhellofailure_eof' }],
+
+  [{ name: 'name', value: 'couldnotdial_connection_refused' }],
+  [{ name: 'name', value: 'couldnotdial_connection_reset_by_peer' }],
+  [{ name: 'name', value: 'couldnotdial_eof' }],
+  [{ name: 'name', value: 'couldnotdial_i/o_timeout' }],
+  [{ name: 'name', value: 'couldnotdial_no_route_to_host' }],
+
+
+
 
 
 
