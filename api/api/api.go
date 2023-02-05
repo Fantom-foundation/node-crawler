@@ -47,8 +47,8 @@ func (a *Api) HandleRequests(wg *sync.WaitGroup) {
 	router.HandleFunc("/", func(rw http.ResponseWriter, r *http.Request) { rw.Write([]byte("Hello")) })
 	router.HandleFunc("/v1/dashboard", a.handleDashboard).Queries("filter", "{filter}")
 	router.HandleFunc("/v1/dashboard", a.handleDashboard)
-	fmt.Println("Start serving on port 10000")
-	http.ListenAndServe(":10000", router)
+	fmt.Println("Start serving on port 4000")
+	http.ListenAndServe(":4000", router)
 }
 
 type client struct {

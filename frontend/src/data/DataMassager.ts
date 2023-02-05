@@ -17,7 +17,7 @@ export function appendOtherGroup(list: NamedCount[] | undefined): [NamedCount[],
 
   const filteredList: NamedCount[] = []
   list.forEach((item) => {
-    if (item.name === 'tmp' || item.name === 'eth2' || item.name === '') {
+    if (item.name === 'tmp'  || item.name === '') {
       unknownItemCount +=  item.count
     } else if (filteredList.length > 9) {
       otherItem.count += item.count
