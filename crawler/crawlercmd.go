@@ -75,7 +75,7 @@ var (
 	timeoutFlag = cli.DurationFlag{
 		Name:  "timeout",
 		Usage: "Timeout for the crawling in a round",
-		Value: 1 * time.Minute,
+		Value: 5 * time.Minute,
 	}
 	tableNameFlag = cli.StringFlag{
 		Name:  "table",

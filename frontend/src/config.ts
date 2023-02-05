@@ -47,6 +47,8 @@ export const knownNodesFilter: FilterGroup[] = [
   [{ name: 'name', value: 'readstatuserror_33' }],
   [{ name: 'name', value: 'readstatuserror_expected_input_list_for_main.disconnect' }],
   [{ name: 'name', value: 'readhellofailure_expected_input_list_for_main.disconnect' }],
+  [{ name: 'name', value: 'readstatuserror_error_decoding_networkid' }],
+  [{ name: 'name', value: 'readhellofailure_eof' }],
 
 
 

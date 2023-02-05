@@ -72,8 +72,8 @@ func newCrawler(genesis *core.Genesis, networkID uint64, nodeURL string, input n
 		iters:     iters,
 		inputIter: enode.IterNodes(input.nodes()),
 		ch:        make(chan *enode.Node),
-		reqCh:     make(chan *enode.Node, 512), // TODO: define this in config
-		workers:   16,                          // TODO: define this in config
+		reqCh:     make(chan *enode.Node, 1024), // TODO: define this in config
+		workers:   32,                          // TODO: define this in config
 		closed:    make(chan struct{}),
 	}
 	c.iters = append(c.iters, c.inputIter)
