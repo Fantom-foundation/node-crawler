@@ -169,11 +169,10 @@ func (c *crawler) getClientInfoLoop() {
 				if len(errStrings) >=2 {
 					clientType := errStrings[0] + "-" + errStrings[len(errStrings)-1]
 					clientType = strings.Replace(clientType, " ",  "_",10)
-				} else {
-					errorReason = -1
-					errorString = err.Error()
-					log.Warn("GetClientInfo failed", "error", err, "nodeID", n.ID())
 				}
+				errorReason = -1
+				errorString = err.Error()
+				log.Warn("GetClientInfo failed", "error", err, "nodeID", n.ID())
 			} else {
 				scoreInc = 10
 			}
