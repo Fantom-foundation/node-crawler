@@ -165,8 +165,9 @@ func (c *crawler) getClientInfoLoop() {
 
 			info, err := getClientInfo(c.genesis, c.networkID, c.nodeURL, n)
 			if err != nil {
-				if strings.Contains(err.Error(),"too many peers") {
-					info.ClientType = "too many peers"
+				errStrings := strings.Split(err.Error(), ":")
+				if len(errStrings) >=2 {
+					info.ClientType = errStrings[0] + ":" + errStrings[len(errStrings)-1]
 				} else {
 					errorReason = -1
 					errorString = err.Error()
