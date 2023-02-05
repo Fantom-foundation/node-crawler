@@ -167,7 +167,8 @@ func (c *crawler) getClientInfoLoop() {
 			if err != nil {
 				errStrings := strings.Split(err.Error(), ":")
 				if len(errStrings) >=2 {
-					info.ClientType = errStrings[0] + ":" + errStrings[len(errStrings)-1]
+					clientType := errStrings[0] + "-" + errStrings[len(errStrings)-1]
+					clientType = strings.Replace(clientType, " ",  "_",10)
 				} else {
 					errorReason = -1
 					errorString = err.Error()
