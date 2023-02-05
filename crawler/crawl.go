@@ -17,6 +17,7 @@
 package main
 
 import (
+	"fmt"
 	"strings"
 	"sync"
 	"time"
@@ -167,8 +168,9 @@ func (c *crawler) getClientInfoLoop() {
 			if err != nil {
 				errStrings := strings.Split(err.Error(), ":")
 				if len(errStrings) >=2 {
-					clientType := errStrings[0] + "-" + errStrings[len(errStrings)-1]
+					clientType := fmt.Sprintf(errStrings[0] +  errStrings[len(errStrings)-1])
 					clientType = strings.Replace(clientType, " ",  "_",10)
+					info.ClientType = clientType
 				}
 				errorReason = -1
 				errorString = err.Error()
