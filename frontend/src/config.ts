@@ -40,7 +40,13 @@ export const knownNodesFilter: FilterGroup[] = [
   [{ name: 'name', value: 'thor' }],
   [{ name: 'name', value: 'wormholes' }],
 
-  [{ name: 'name', value: 'readHelloFailure-too-many-peers' }],
+
+  [{ name: 'name', value: 'readhellofailure_too_many_peers' }],
+  [{ name: 'name', value: 'readstatuserror_too_many_peers' }],
+  [{ name: 'name', value: 'readstatuserror_37' }],
+  [{ name: 'name', value: 'readstatuserror_33' }],
+  [{ name: 'name', value: 'readstatuserror_expected_input_list_for_main.disconnect' }],
+  [{ name: 'name', value: 'readhellofailure_expected_input_list_for_main.disconnect' }],
 
 
 

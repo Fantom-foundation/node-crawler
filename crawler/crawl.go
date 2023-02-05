@@ -168,7 +168,11 @@ func (c *crawler) getClientInfoLoop() {
 			if err != nil {
 				errStrings := strings.Split(err.Error(), ":")
 				if len(errStrings) >=2 {
-					clientType := fmt.Sprintf(errStrings[0] +  errStrings[len(errStrings)-1])
+					lastError := errStrings[len(errStrings)-1]
+					if strings.Contains(lastError, "decoding into (main.Status).NetworkID") {
+						lastError = " error decoding NetworkID"
+					}
+					clientType := fmt.Sprintf(errStrings[0] +  lastError)
 					clientType = strings.Replace(clientType, " ",  "_",10)
 					info.ClientType = clientType
 				}
