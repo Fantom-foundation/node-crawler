@@ -40,10 +40,7 @@ export const knownNodesFilter: FilterGroup[] = [
   [{ name: 'name', value: 'thor' }],
   [{ name: 'name', value: 'wormholes' }],
 
-  [{ name: 'name', value: 'readStatusError  non-canonical integer (leading zero bytes) for uint64, decoding into (main.Status).NetworkID' }],
-  [{ name: 'name', value: 'readHelloFailure  too many peers' }],
-  [{ name: 'name', value: 'readHelloFailure  expected input list for main.Disconnect' }],
-  [{ name: 'name', value: 'readHelloFailure  EOF' }],
+  [{ name: 'name', value: 'readHelloFailure-too-many-peers' }],
 
 
 
