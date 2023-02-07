@@ -11,7 +11,7 @@ import { schemeCategory10 } from 'd3-scale-chromatic';
 import { Grid, GridItem, useColorModeValue, Text, Center } from '@chakra-ui/react';
 import { Card } from '../atoms/Card';
 import { TooltipCard } from '../atoms/TooltipCard';
-import { appendOtherGroup } from '../data/DataMassager';
+import {appendOtherGroup, getClients, getErrors} from '../data/DataMassager';
 import { drilldownFilter, filterCount, FilterGroup, generateFilterGroupsFromQueryString, generateQueryStringFromFilterGroups } from '../data/FilterUtils';
 import { Filtering } from '../organisms/Filtering';
 import { Loader } from '../organisms/Loader';
@@ -29,6 +29,7 @@ interface ClientData {
   versions: NamedCount[];
   versionsUnknown: number;
   clients: NamedCount[];
+  errors: NamedCount[];
   clientsUnknown: number;
   operatingSystems: NamedCount[];
   operatingSystemsUnknown: number;
@@ -72,7 +73,8 @@ function Home() {
       const json: ClientData = await response.json()
 
       const [versions, unknownVersionsCount] = appendOtherGroup(json.versions)
-      const [clients, unknownClientCount] = appendOtherGroup(json.clients)
+      const [clients, unknownClientCount] = getClients(json.clients)
+      const errors = getErrors(json.clients)
       const [languages, unknownLanguageCount] = appendOtherGroup(json.languages)
       const [operatingSystems, unknownOperatingSystemCount] = appendOtherGroup(json.operatingSystems)
       const [countries] = appendOtherGroup(json.countries)
@@ -80,6 +82,7 @@ function Home() {
       json.versions = versions
       json.versionsUnknown = unknownVersionsCount
       json.clients = clients
+      json.errors = errors
       json.clientsUnknown = unknownClientCount
       json.languages = languages
       json.languagesUnknown = unknownLanguageCount
@@ -138,7 +141,7 @@ function Home() {
         <Filtering filters={filters} onFiltersChange={onFiltersChanged} />
       </GridItem>
 
-      <GridItem colSpan={LayoutTwoColSpan}>
+
         <Card title={barChartTitle} contentHeight={barChartData.length * 40}>
           {barChartData.length === 0 && (
             <Center flex={1}>No data available</Center>
@@ -164,7 +167,33 @@ function Home() {
             </CustomResponsiveContainer>
           )}
         </Card>
-      </GridItem>
+
+      <Card title="Crawling Errors" contentHeight={data.errors.length * 40}>
+        {data.errors.length === 0 && (
+            <Center flex={1}>No data available</Center>
+        )}
+        {data.errors.length > 0 && (
+            <CustomResponsiveContainer>
+              <BarChart
+                  data={data.errors}
+                  layout="vertical"
+                  margin={{ left: 400, right: 30 }}
+                  onClick={data.versions.length ? onVersionClicked : onClientClicked}
+              >
+                <XAxis type="number" hide stroke={color} />
+                <YAxis dataKey="name" type="category" interval={0} stroke={color} />
+                <Tooltip cursor={false} content={renderTooltipContent} />
+                <Bar dataKey="count">
+                  {data.errors.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={colors[index % 10]} />
+                  ))}
+                  <LabelList position="right" />
+                </Bar>
+              </BarChart>
+            </CustomResponsiveContainer>
+        )}
+      </Card>
+
 
       <Card title="Popular Operating Systems" contentHeight={300}>
         {data.operatingSystems.length === 0 && (
