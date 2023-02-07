@@ -67,14 +67,24 @@ export function getClients(list: NamedCount[] | undefined): [NamedCount[], numbe
 }
 
 export function getErrors(list: NamedCount[] | undefined): NamedCount[] {
+  let unknownItemCount = 0
   if (!list) {
     return [];
   }
 
+  const otherItem: NamedCount = {
+    name: 'Other',
+    count: 0
+  };
+
   const filteredList: NamedCount[] = []
   list.forEach((item) => {
     if (item.name.includes('_')) {
-      filteredList.push(item)
+      if (filteredList.length > 10) {
+        otherItem.count += item.count
+      } else {
+        filteredList.push(item)
+      }
     }
   })
 
