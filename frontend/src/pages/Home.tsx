@@ -151,7 +151,7 @@ function Home() {
               <BarChart
                 data={barChartData}
                 layout="vertical"
-                margin={{ left: 400, right: 30 }}
+                margin={{ left: 600, right: 30 }}
                 onClick={data.versions.length ? onVersionClicked : onClientClicked}
               >
                 <XAxis type="number" hide stroke={color} />
@@ -177,7 +177,7 @@ function Home() {
               <BarChart
                   data={data.errors}
                   layout="vertical"
-                  margin={{ left: 60, right: 30 }}
+                  margin={{ left: 400, right: 30 }}
                   onClick={data.versions.length ? onVersionClicked : onClientClicked}
               >
                 <XAxis type="number" hide stroke={color} />
