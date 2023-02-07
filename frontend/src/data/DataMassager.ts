@@ -19,7 +19,7 @@ export function appendOtherGroup(list: NamedCount[] | undefined): [NamedCount[],
   list.forEach((item) => {
     if (item.name === 'tmp'  || item.name === '') {
       unknownItemCount +=  item.count
-    } else if (filteredList.length > 20) {
+    } else if (filteredList.length > 10) {
       otherItem.count += item.count
     } else {
       filteredList.push(item)
