@@ -20,19 +20,18 @@ import (
 	"database/sql"
 	"os"
 
-	_ "modernc.org/sqlite"
-
-	"github.com/oschwald/geoip2-golang"
-
+	"github.com/Fantom-foundation/go-opera/cmd/opera/launcher"
 	"github.com/ethereum/go-ethereum/cmd/utils"
 	gethCommon "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/p2p/enode"
+	"github.com/oschwald/geoip2-golang"
+	"github.com/urfave/cli/v2"
+	_ "modernc.org/sqlite"
+
 	"github.com/ethereum/node-crawler/pkg/common"
 	"github.com/ethereum/node-crawler/pkg/crawler"
 	"github.com/ethereum/node-crawler/pkg/crawlerdb"
-
-	"github.com/urfave/cli/v2"
 )
 
 var (
@@ -54,8 +53,10 @@ var (
 			&timeoutFlag,
 			&workersFlag,
 			utils.GoerliFlag,
-			utils.NetworkIdFlag,
 			utils.SepoliaFlag,
+			launcher.FakeNetFlag,
+			launcher.GenesisFlag,
+			launcher.ExperimentalGenesisFlag,
 		},
 	}
 )
@@ -109,12 +110,19 @@ func crawlNodes(ctx *cli.Context) error {
 		defer func() { _ = geoipDB.Close() }()
 	}
 
+	operaStatus := mayGetOperaStatus(ctx)
+
+	bootnodes := ctx.StringSlice(bootnodesFlag.Name)
+	if len(bootnodes) < 1 {
+		bootnodes = launcher.Bootnodes[operaStatus.NetworkName]
+	}
+
 	crawler := crawler.Crawler{
-		NetworkID:  ctx.Uint64(utils.NetworkIdFlag.Name),
+		Opera:      operaStatus,
 		NodeURL:    ctx.String(nodeURLFlag.Name),
 		ListenAddr: ctx.String(listenAddrFlag.Name),
 		NodeKey:    ctx.String(nodekeyFlag.Name),
-		Bootnodes:  ctx.StringSlice(bootnodesFlag.Name),
+		Bootnodes:  bootnodes,
 		Timeout:    ctx.Duration(timeoutFlag.Name),
 		Workers:    ctx.Uint64(workersFlag.Name),
 		Sepolia:    ctx.Bool(utils.SepoliaFlag.Name),

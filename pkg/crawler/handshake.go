@@ -9,7 +9,6 @@ import (
 	"time"
 
 	ethCommon "github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/forkid"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -28,7 +27,7 @@ var (
 	lastStatusUpdate time.Time
 )
 
-func getClientInfo(genesis *core.Genesis, networkID uint64, nodeURL string, n *enode.Node) (*common.ClientInfo, error) {
+func getClientInfo(opera *OperaStatus, nodeURL string, n *enode.Node) (*common.ClientInfo, error) {
 	var info common.ClientInfo
 
 	conn, sk, err := dial(n)
@@ -154,7 +153,6 @@ func getStatus(config *params.ChainConfig, version uint32, genesis ethCommon.Has
 			TD:              big.NewInt(0),
 			Head:            genesis,
 			Genesis:         genesis,
-			ForkID:          forkid.NewID(config, genesis, 0, 0),
 		}
 	}
 

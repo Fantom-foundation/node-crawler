@@ -22,7 +22,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/p2p/discover"
 	"github.com/ethereum/go-ethereum/p2p/enode"
@@ -33,15 +32,15 @@ import (
 
 type Crawler struct {
 	// These are probably from flags
-	NetworkID  uint64
-	NodeURL    string
-	ListenAddr string
-	NodeKey    string
-	Bootnodes  []string
-	Timeout    time.Duration
-	Workers    uint64
-	Sepolia    bool
-	Goerli     bool
+	OperaStatus *OperaStatus
+	NodeURL     string
+	ListenAddr  string
+	NodeKey     string
+	Bootnodes   []string
+	Timeout     time.Duration
+	Workers     uint64
+	Sepolia     bool
+	Goerli      bool
 
 	NodeDB *enode.DB
 }
@@ -49,9 +48,8 @@ type Crawler struct {
 type crawler struct {
 	output common.NodeSet
 
-	genesis   *core.Genesis
-	networkID uint64
-	nodeURL   string
+	opera   *OperaStatus
+	nodeURL string
 
 	disc resolver
 
@@ -77,8 +75,7 @@ type resolver interface {
 }
 
 func NewCrawler(
-	genesis *core.Genesis,
-	networkID uint64,
+	opera *OperaStatus,
 	nodeURL string,
 	input common.NodeSet,
 	workers uint64,
@@ -87,8 +84,7 @@ func NewCrawler(
 ) *crawler {
 	c := &crawler{
 		output:    make(common.NodeSet, len(input)),
-		genesis:   genesis,
-		networkID: networkID,
+		opera:     opera,
 		nodeURL:   nodeURL,
 		disc:      disc,
 		iters:     iters,
@@ -174,7 +170,8 @@ func (c *crawler) runIterator(done chan<- enode.Iterator, it enode.Iterator) {
 }
 
 func (c *crawler) getClientInfoLoop() {
-	defer func() { c.Done() }()
+	defer c.Done()
+
 	for n := range c.reqCh {
 		if n == nil {
 			return
@@ -183,7 +180,7 @@ func (c *crawler) getClientInfoLoop() {
 		var tooManyPeers bool
 		var scoreInc int
 
-		info, err := getClientInfo(c.genesis, c.networkID, c.nodeURL, n)
+		info, err := getClientInfo(c.opera, c.nodeURL, n)
 		if err != nil {
 			log.Warn("GetClientInfo failed", "error", err, "nodeID", n.ID())
 			if strings.Contains(err.Error(), "too many peers") {
@@ -339,25 +336,8 @@ func (c Crawler) discv4(inputSet common.NodeSet) common.NodeSet {
 }
 
 func (c Crawler) runCrawler(disc resolver, inputSet common.NodeSet) common.NodeSet {
-	genesis := c.makeGenesis()
-	if genesis == nil {
-		genesis = core.DefaultGenesisBlock()
-	}
 
-	crawler := NewCrawler(genesis, c.NetworkID, c.NodeURL, inputSet, c.Workers, disc, disc.RandomNodes())
+	crawler := NewCrawler(c.OperaStatus, c.NodeURL, inputSet, c.Workers, disc, disc.RandomNodes())
 	crawler.revalidateInterval = 10 * time.Minute
 	return crawler.Run(c.Timeout)
-}
-
-// makeGenesis is the pendant to utils.MakeGenesis
-// with local flags instead of global flags.
-func (c Crawler) makeGenesis() *core.Genesis {
-	if c.Sepolia {
-		return core.DefaultSepoliaGenesisBlock()
-	}
-	if c.Goerli {
-		return core.DefaultGoerliGenesisBlock()
-	}
-
-	return core.DefaultGenesisBlock()
 }
