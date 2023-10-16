@@ -39,8 +39,6 @@ type Crawler struct {
 	Bootnodes   []string
 	Timeout     time.Duration
 	Workers     uint64
-	Sepolia     bool
-	Goerli      bool
 
 	NodeDB *enode.DB
 }

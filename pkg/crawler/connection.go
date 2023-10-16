@@ -21,6 +21,9 @@ import (
 	"encoding/hex"
 	"fmt"
 
+	"github.com/Fantom-foundation/go-opera/gossip"
+
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/eth/protocols/eth"
 	"github.com/ethereum/go-ethereum/p2p"
 	"github.com/ethereum/go-ethereum/p2p/rlpx"
@@ -83,11 +86,21 @@ type Pong struct{}
 func (msg Pong) Code() int     { return 0x03 }
 func (msg Pong) ReqID() uint64 { return 0 }
 
-// Status is the network packet for the status message for eth/64 and later.
-type Status eth.StatusPacket
+// Handshake is the network packet.
+type Handshake struct {
+	ProtocolVersion uint32
+	NetworkID       uint64
+	Genesis         common.Hash
+}
 
-func (msg Status) Code() int     { return 16 }
-func (msg Status) ReqID() uint64 { return 0 }
+func (msg Handshake) Code() int     { return gossip.HandshakeMsg }
+func (msg Handshake) ReqID() uint64 { return 0 }
+
+// Progress is the network packet.
+type Progress gossip.PeerProgress
+
+func (msg Progress) Code() int     { return gossip.ProgressMsg }
+func (msg Progress) ReqID() uint64 { return 0 }
 
 // NewBlockHashes is the network packet for the block announcements.
 type NewBlockHashes eth.NewBlockHashesPacket
@@ -143,7 +156,7 @@ func (msg PooledTransactions) ReqID() uint64 { return msg.RequestId }
 type Conn struct {
 	*rlpx.Conn
 	ourKey                     *ecdsa.PrivateKey
-	negotiatedProtoVersion     uint
+	negotiatedProtoVersion     uint32
 	negotiatedSnapProtoVersion uint
 	ourHighestProtoVersion     uint
 	ourHighestSnapProtoVersion uint
@@ -172,8 +185,10 @@ func (c *Conn) Read() Message {
 			}
 		}
 		msg = new(Disconnect)
-	case (Status{}).Code():
-		msg = new(Status)
+	case (Handshake{}).Code():
+		msg = new(Handshake)
+	case (Progress{}).Code():
+		msg = new(Progress)
 	case (GetBlockHeaders{}).Code():
 		ethMsg := new(eth.GetBlockHeadersPacket66)
 		if err := rlp.DecodeBytes(rawData, ethMsg); err != nil {
@@ -223,7 +238,7 @@ func (c *Conn) Read() Message {
 	if msg != nil {
 		if err := rlp.DecodeBytes(rawData, msg); err != nil {
 			fmt.Println(hex.EncodeToString(rawData))
-			return errorf("could not rlp decode message: %v", err)
+			return errorf("could not rlp decode message %d: %v", code, err)
 		}
 		return msg
 	}
@@ -245,12 +260,12 @@ func (c *Conn) Write(msg Message) error {
 func (c *Conn) negotiateEthProtocol(caps []p2p.Cap) {
 	var highestEthVersion uint
 	for _, capability := range caps {
-		if capability.Name != "eth" {
+		if capability.Name != gossip.ProtocolName {
 			continue
 		}
 		if capability.Version > highestEthVersion && capability.Version <= c.ourHighestProtoVersion {
 			highestEthVersion = capability.Version
 		}
 	}
-	c.negotiatedProtoVersion = highestEthVersion
+	c.negotiatedProtoVersion = uint32(highestEthVersion)
 }
