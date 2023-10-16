@@ -19,14 +19,14 @@ package main
 import (
 	"database/sql"
 	"os"
+	"strings"
 
 	"github.com/Fantom-foundation/go-opera/cmd/opera/launcher"
-	"github.com/ethereum/go-ethereum/cmd/utils"
 	gethCommon "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/p2p/enode"
 	"github.com/oschwald/geoip2-golang"
-	"github.com/urfave/cli/v2"
+	"gopkg.in/urfave/cli.v1"
 	_ "modernc.org/sqlite"
 
 	"github.com/ethereum/node-crawler/pkg/common"
@@ -35,7 +35,7 @@ import (
 )
 
 var (
-	crawlerCommand = &cli.Command{
+	crawlerCommand = cli.Command{
 		Name:   "crawl",
 		Usage:  "Crawl the ethereum network",
 		Action: crawlNodes,
@@ -52,8 +52,6 @@ var (
 			&nodekeyFlag,
 			&timeoutFlag,
 			&workersFlag,
-			utils.GoerliFlag,
-			utils.SepoliaFlag,
 			launcher.FakeNetFlag,
 			launcher.GenesisFlag,
 			launcher.ExperimentalGenesisFlag,
@@ -113,21 +111,20 @@ func crawlNodes(ctx *cli.Context) error {
 	operaStatus := mayGetOperaStatus(ctx)
 
 	bootnodes := ctx.StringSlice(bootnodesFlag.Name)
+	bootnodes = strings.Split(bootnodes[0], ",") // TODO: workaround as StringSlice does not work properly
 	if len(bootnodes) < 1 {
 		bootnodes = launcher.Bootnodes[operaStatus.NetworkName]
 	}
 
 	crawler := crawler.Crawler{
-		Opera:      operaStatus,
-		NodeURL:    ctx.String(nodeURLFlag.Name),
-		ListenAddr: ctx.String(listenAddrFlag.Name),
-		NodeKey:    ctx.String(nodekeyFlag.Name),
-		Bootnodes:  bootnodes,
-		Timeout:    ctx.Duration(timeoutFlag.Name),
-		Workers:    ctx.Uint64(workersFlag.Name),
-		Sepolia:    ctx.Bool(utils.SepoliaFlag.Name),
-		Goerli:     ctx.Bool(utils.GoerliFlag.Name),
-		NodeDB:     nodeDB,
+		OperaStatus: operaStatus,
+		NodeURL:     ctx.String(nodeURLFlag.Name),
+		ListenAddr:  ctx.String(listenAddrFlag.Name),
+		NodeKey:     ctx.String(nodekeyFlag.Name),
+		Bootnodes:   bootnodes,
+		Timeout:     ctx.Duration(timeoutFlag.Name),
+		Workers:     ctx.Uint64(workersFlag.Name),
+		NodeDB:      nodeDB,
 	}
 
 	for {

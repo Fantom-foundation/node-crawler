@@ -13,11 +13,11 @@ import (
 	"github.com/ethereum/node-crawler/pkg/api"
 	"github.com/ethereum/node-crawler/pkg/apidb"
 	"github.com/ethereum/node-crawler/pkg/crawlerdb"
-	"github.com/urfave/cli/v2"
+	"gopkg.in/urfave/cli.v1"
 )
 
 var (
-	apiCommand = &cli.Command{
+	apiCommand = cli.Command{
 		Name:   "api",
 		Usage:  "API server for the crawler",
 		Action: startAPI,

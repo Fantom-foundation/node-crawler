@@ -1,68 +1,48 @@
 package main
 
 import (
-	"bufio"
-	"errors"
 	"fmt"
-	"math/big"
 	"os"
-	"path"
-	"path/filepath"
-	"reflect"
+	"strconv"
 	"strings"
 
-	"github.com/Fantom-foundation/lachesis-base/abft"
-	"github.com/Fantom-foundation/lachesis-base/utils/cachescale"
-	"github.com/ethereum/go-ethereum/cmd/utils"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/node"
-	"github.com/ethereum/go-ethereum/p2p/enode"
-	"github.com/ethereum/go-ethereum/params"
-	"github.com/ethereum/node-crawler/pkg/crawler"
-	"github.com/naoina/toml"
-	"github.com/syndtr/goleveldb/leveldb/opt"
-	"gopkg.in/urfave/cli.v1"
-
 	"github.com/Fantom-foundation/go-opera/cmd/opera/launcher"
-	"github.com/Fantom-foundation/go-opera/evmcore"
-	"github.com/Fantom-foundation/go-opera/gossip"
-	"github.com/Fantom-foundation/go-opera/gossip/emitter"
-	"github.com/Fantom-foundation/go-opera/gossip/gasprice"
-	"github.com/Fantom-foundation/go-opera/integration"
 	"github.com/Fantom-foundation/go-opera/integration/makefakegenesis"
 	"github.com/Fantom-foundation/go-opera/opera/genesis"
 	"github.com/Fantom-foundation/go-opera/opera/genesisstore"
-	futils "github.com/Fantom-foundation/go-opera/utils"
-	"github.com/Fantom-foundation/go-opera/utils/memory"
-	"github.com/Fantom-foundation/go-opera/vecmt"
+	"github.com/Fantom-foundation/go-opera/utils"
+	"github.com/Fantom-foundation/lachesis-base/inter/idx"
+	"github.com/ethereum/go-ethereum/log"
+	"gopkg.in/urfave/cli.v1"
+
+	"github.com/ethereum/node-crawler/pkg/crawler"
 )
 
 func mayGetOperaStatus(ctx *cli.Context) *crawler.OperaStatus {
 	var genesisStore *genesisstore.Store
 
 	switch {
-	case ctx.GlobalIsSet(launcher.FakeNetFlag.Name):
-		_, num, err := parseFakeGen(ctx.GlobalString(launcher.FakeNetFlag.Name))
+	case ctx.IsSet(launcher.FakeNetFlag.Name):
+		_, num, err := parseFakeGen(ctx.String(launcher.FakeNetFlag.Name))
 		if err != nil {
 			log.Crit("Invalid flag", "flag", launcher.FakeNetFlag.Name, "err", err)
 		}
-		genesisStore = makefakegenesis.FakeGenesisStore(num, futils.ToFtm(1000000000), futils.ToFtm(5000000))
+		genesisStore = makefakegenesis.FakeGenesisStore(num, utils.ToFtm(1000000000), utils.ToFtm(5000000))
 		defer genesisStore.Close()
 
-	case ctx.GlobalIsSet(launcher.GenesisFlag.Name):
-		genesisPath := ctx.GlobalString(launcher.GenesisFlag.Name)
+	case ctx.IsSet(launcher.GenesisFlag.Name):
+		genesisPath := ctx.String(launcher.GenesisFlag.Name)
 
 		f, err := os.Open(genesisPath)
 		if err != nil {
-			utils.Fatalf("Failed to open genesis file: %v", err)
+			panic(fmt.Errorf("Failed to open genesis file: %v", err))
 		}
 		defer f.Close()
 
 		var genesisHashes genesis.Hashes
 		genesisStore, genesisHashes, err = genesisstore.OpenGenesisStore(f)
 		if err != nil {
-			utils.Fatalf("Failed to read genesis file: %v", err)
+			panic(fmt.Errorf("Failed to read genesis file: %v", err))
 		}
 		defer genesisStore.Close()
 
@@ -80,10 +60,10 @@ func mayGetOperaStatus(ctx *cli.Context) *crawler.OperaStatus {
 					goto notExperimental
 				}
 			}
-			if ctx.GlobalBool(launcher.ExperimentalGenesisFlag.Name) {
+			if ctx.Bool(launcher.ExperimentalGenesisFlag.Name) {
 				log.Warn("Genesis file doesn't refer to any trusted preset")
 			} else {
-				utils.Fatalf("Genesis file doesn't refer to any trusted preset. Enable experimental genesis with --genesis.allowExperimental")
+				panic(fmt.Errorf("Genesis file doesn't refer to any trusted preset. Enable experimental genesis with --genesis.allowExperimental"))
 			}
 		notExperimental:
 		}
@@ -95,4 +75,28 @@ func mayGetOperaStatus(ctx *cli.Context) *crawler.OperaStatus {
 	operaStatus := new(crawler.OperaStatus)
 	operaStatus.LoadGenesis(genesisStore)
 	return operaStatus
+}
+
+func parseFakeGen(s string) (id idx.ValidatorID, num idx.Validator, err error) {
+	parts := strings.SplitN(s, "/", 2)
+	if len(parts) != 2 {
+		err = fmt.Errorf("use %%d/%%d format")
+		return
+	}
+
+	var u32 uint64
+	u32, err = strconv.ParseUint(parts[0], 10, 32)
+	if err != nil {
+		return
+	}
+	id = idx.ValidatorID(u32)
+
+	u32, err = strconv.ParseUint(parts[1], 10, 32)
+	num = idx.Validator(u32)
+	if num < 0 || idx.Validator(id) > num {
+		err = fmt.Errorf("key-num should be in range from 1 to validators (<key-num>/<validators>), or should be zero for non-validator node")
+		return
+	}
+
+	return
 }
