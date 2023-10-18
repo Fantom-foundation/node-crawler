@@ -22,6 +22,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Fantom-foundation/go-opera/opera/genesisstore"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/p2p/discover"
 	"github.com/ethereum/go-ethereum/p2p/enode"
@@ -39,8 +40,51 @@ type Crawler struct {
 	Bootnodes   []string
 	Timeout     time.Duration
 	Workers     uint64
+	DB          *sql.DB
+	GeoipDB     *geoip2.Reader
+	NodeDB      *enode.DB
+}
 
-	NodeDB *enode.DB
+func NewCrawler(
+	genesis *genesisstore.Store,
+	nodeURL string,
+	listenAddr string,
+	nodeKey string,
+	bootnodes []string,
+	timeout time.Duration,
+	workers uint64,
+	db *sql.DB,
+	geoipDB *geoip2.Reader,
+	nodeDB *enode.DB,
+) *Crawler {
+	opera := new(OperaStatus)
+	opera.LoadGenesis(genesis)
+	return &Crawler{
+		OperaStatus: opera,
+		NodeURL:     nodeURL,
+		ListenAddr:  listenAddr,
+		NodeKey:     nodeKey,
+		Bootnodes:   bootnodes,
+		Timeout:     timeout,
+		Workers:     workers,
+		DB:          db,
+		GeoipDB:     geoipDB,
+		NodeDB:      nodeDB,
+	}
+}
+
+func (c *Crawler) Start(inputSet common.NodeSet, onUpdatedSet func(common.NodeSet)) {
+	go func() {
+		for {
+			updatedSet := c.crawlRound(inputSet, c.DB, c.GeoipDB)
+			onUpdatedSet(updatedSet)
+			inputSet = updatedSet
+		}
+	}()
+}
+
+func (c *Crawler) Stop() {
+
 }
 
 type crawler struct {
@@ -72,7 +116,7 @@ type resolver interface {
 	RandomNodes() enode.Iterator
 }
 
-func NewCrawler(
+func newCrawler(
 	opera *OperaStatus,
 	nodeURL string,
 	input common.NodeSet,
@@ -259,7 +303,7 @@ func (c *crawler) updateNode(n *enode.Node) {
 	}
 }
 
-func (c Crawler) CrawlRound(
+func (c Crawler) crawlRound(
 	inputSet common.NodeSet,
 	db *sql.DB,
 	geoipDB *geoip2.Reader,
@@ -297,7 +341,7 @@ func (c Crawler) CrawlRound(
 	}
 
 	// Write the node info to influx
-	if db != nil {
+	if c.DB != nil {
 		if err := crawlerdb.UpdateNodes(db, geoipDB, nodes); err != nil {
 			panic(err)
 		}
@@ -334,8 +378,7 @@ func (c Crawler) discv4(inputSet common.NodeSet) common.NodeSet {
 }
 
 func (c Crawler) runCrawler(disc resolver, inputSet common.NodeSet) common.NodeSet {
-
-	crawler := NewCrawler(c.OperaStatus, c.NodeURL, inputSet, c.Workers, disc, disc.RandomNodes())
+	crawler := newCrawler(c.OperaStatus, c.NodeURL, inputSet, c.Workers, disc, disc.RandomNodes())
 	crawler.revalidateInterval = 10 * time.Minute
 	return crawler.Run(c.Timeout)
 }

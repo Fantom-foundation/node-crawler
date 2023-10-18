@@ -18,10 +18,19 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	"os"
+	"os/signal"
+	"strconv"
 	"strings"
+	"syscall"
 
 	"github.com/Fantom-foundation/go-opera/cmd/opera/launcher"
+	"github.com/Fantom-foundation/go-opera/integration/makefakegenesis"
+	"github.com/Fantom-foundation/go-opera/opera/genesis"
+	"github.com/Fantom-foundation/go-opera/opera/genesisstore"
+	"github.com/Fantom-foundation/go-opera/utils"
+	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	gethCommon "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/p2p/enode"
@@ -61,10 +70,7 @@ var (
 
 func crawlNodes(ctx *cli.Context) error {
 	var inputSet common.NodeSet
-	var geoipDB *geoip2.Reader
-
 	nodesFile := ctx.String(nodeFileFlag.Name)
-
 	if nodesFile != "" && gethCommon.FileExist(nodesFile) {
 		inputSet = common.LoadNodesJSON(nodesFile)
 	}
@@ -95,42 +101,132 @@ func crawlNodes(ctx *cli.Context) error {
 		}
 	}
 
+	var nodeDB *enode.DB
 	nodeDB, err := enode.OpenDB(ctx.String(nodedbFlag.Name))
 	if err != nil {
 		panic(err)
 	}
 
+	var geoipDB *geoip2.Reader
 	if geoipFile := ctx.String(geoipdbFlag.Name); geoipFile != "" {
 		geoipDB, err = geoip2.Open(geoipFile)
 		if err != nil {
 			return err
 		}
-		defer func() { _ = geoipDB.Close() }()
+		defer geoipDB.Close()
 	}
 
-	operaStatus := mayGetOperaStatus(ctx)
+	var genesisStore *genesisstore.Store
+	switch {
+	case ctx.IsSet(launcher.FakeNetFlag.Name):
+		_, num, err := parseFakeGen(ctx.String(launcher.FakeNetFlag.Name))
+		if err != nil {
+			log.Crit("Invalid flag", "flag", launcher.FakeNetFlag.Name, "err", err)
+		}
+		genesisStore = makefakegenesis.FakeGenesisStore(num, utils.ToFtm(1000000000), utils.ToFtm(5000000))
+		defer genesisStore.Close()
 
-	bootnodes := ctx.StringSlice(bootnodesFlag.Name)
-	bootnodes = strings.Split(bootnodes[0], ",") // TODO: workaround as StringSlice does not work properly
+	case ctx.IsSet(launcher.GenesisFlag.Name):
+		genesisPath := ctx.String(launcher.GenesisFlag.Name)
+
+		f, err := os.Open(genesisPath)
+		if err != nil {
+			panic(fmt.Errorf("Failed to open genesis file: %v", err))
+		}
+		defer f.Close()
+
+		var genesisHashes genesis.Hashes
+		genesisStore, genesisHashes, err = genesisstore.OpenGenesisStore(f)
+		if err != nil {
+			panic(fmt.Errorf("Failed to read genesis file: %v", err))
+		}
+		defer genesisStore.Close()
+
+		// check if it's a trusted preset
+		{
+			g := genesisStore.Genesis()
+			gHeader := genesis.Header{
+				GenesisID:   g.GenesisID,
+				NetworkID:   g.NetworkID,
+				NetworkName: g.NetworkName,
+			}
+			experimental := true
+			for _, allowed := range launcher.AllowedOperaGenesis {
+				if allowed.Hashes.Equal(genesisHashes) && allowed.Header.Equal(gHeader) {
+					log.Info("Genesis file is a known preset", "name", allowed.Name)
+					experimental = false
+					break
+				}
+			}
+			if !experimental || ctx.Bool(launcher.ExperimentalGenesisFlag.Name) {
+				log.Warn("Genesis file doesn't refer to any trusted preset")
+			} else {
+				panic(fmt.Errorf("Genesis file doesn't refer to any trusted preset. Enable experimental genesis with --genesis.allowExperimental"))
+			}
+		}
+
+	default:
+		panic("Genesis expected!")
+	}
+
+	var bootnodes []string
+	bootnodes = ctx.StringSlice(bootnodesFlag.Name)
+	bootnodes = strings.Split(bootnodes[0], ",") // NOTE: workaround as StringSlice does not work properly
 	if len(bootnodes) < 1 {
-		bootnodes = launcher.Bootnodes[operaStatus.NetworkName]
+		// defaults
+		bootnodes = launcher.Bootnodes[genesisStore.Header().NetworkName]
 	}
 
-	crawler := crawler.Crawler{
-		OperaStatus: operaStatus,
-		NodeURL:     ctx.String(nodeURLFlag.Name),
-		ListenAddr:  ctx.String(listenAddrFlag.Name),
-		NodeKey:     ctx.String(nodekeyFlag.Name),
-		Bootnodes:   bootnodes,
-		Timeout:     ctx.Duration(timeoutFlag.Name),
-		Workers:     ctx.Uint64(workersFlag.Name),
-		NodeDB:      nodeDB,
-	}
+	crawler := crawler.NewCrawler(
+		genesisStore,
+		ctx.String(nodeURLFlag.Name),
+		ctx.String(listenAddrFlag.Name),
+		ctx.String(nodekeyFlag.Name),
+		bootnodes,
+		ctx.Duration(timeoutFlag.Name),
+		ctx.Uint64(workersFlag.Name),
+		db,
+		geoipDB,
+		nodeDB,
+	)
 
-	for {
-		updatedSet := crawler.CrawlRound(inputSet, db, geoipDB)
+	crawler.Start(inputSet, func(updatedSet common.NodeSet) {
 		if nodesFile != "" {
 			updatedSet.WriteNodesJSON(nodesFile)
 		}
+	})
+	defer crawler.Stop()
+
+	wait()
+	return nil
+}
+
+func wait() {
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, os.Interrupt, syscall.SIGTERM)
+	<-sigs
+}
+
+func parseFakeGen(s string) (id idx.ValidatorID, num idx.Validator, err error) {
+	parts := strings.SplitN(s, "/", 2)
+	if len(parts) != 2 {
+		err = fmt.Errorf("use %%d/%%d format")
+		return
 	}
+
+	var u32 uint64
+	u32, err = strconv.ParseUint(parts[0], 10, 32)
+	if err != nil {
+		return
+	}
+	id = idx.ValidatorID(u32)
+
+	u32, err = strconv.ParseUint(parts[1], 10, 32)
+	num = idx.Validator(u32)
+	if num < 0 || idx.Validator(id) > num {
+		err = fmt.Errorf("key-num should be in range from 1 to validators (<key-num>/<validators>), or should be zero for non-validator node")
+		return
+	}
+
+	return
 }
