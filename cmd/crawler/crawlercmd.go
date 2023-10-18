@@ -39,8 +39,8 @@ import (
 	_ "modernc.org/sqlite"
 
 	"github.com/ethereum/node-crawler/pkg/common"
-	"github.com/ethereum/node-crawler/pkg/crawler"
 	"github.com/ethereum/node-crawler/pkg/crawlerdb"
+	"github.com/ethereum/node-crawler/pkg/p2p"
 )
 
 var (
@@ -177,7 +177,7 @@ func crawlNodes(ctx *cli.Context) error {
 		bootnodes = launcher.Bootnodes[genesisStore.Header().NetworkName]
 	}
 
-	crawler := crawler.NewCrawler(
+	crawler := p2p.NewCrawler(
 		genesisStore,
 		ctx.String(nodeURLFlag.Name),
 		ctx.String(listenAddrFlag.Name),
