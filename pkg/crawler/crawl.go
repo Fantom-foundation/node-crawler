@@ -55,10 +55,16 @@ func NewCrawler(
 	workers uint64,
 	db *sql.DB,
 	geoipDB *geoip2.Reader,
-	nodeDB *enode.DB,
+	nodeDBpath string,
 ) *Crawler {
 	opera := new(OperaStatus)
 	opera.LoadGenesis(genesis)
+
+	nodeDB, err := enode.OpenDB(nodeDBpath)
+	if err != nil {
+		panic(err)
+	}
+
 	return &Crawler{
 		OperaStatus: opera,
 		NodeURL:     nodeURL,
@@ -341,7 +347,7 @@ func (c Crawler) crawlRound(
 	}
 
 	// Write the node info to influx
-	if c.DB != nil {
+	if db != nil {
 		if err := crawlerdb.UpdateNodes(db, geoipDB, nodes); err != nil {
 			panic(err)
 		}

@@ -10,16 +10,21 @@ import (
 	"github.com/Fantom-foundation/go-opera/cmd/opera/launcher"
 	"github.com/Fantom-foundation/go-opera/opera/genesisstore"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/p2p"
 	"github.com/ethereum/go-ethereum/p2p/enode"
 	"github.com/oschwald/geoip2-golang"
 
 	"github.com/ethereum/node-crawler/pkg/common"
+	"github.com/ethereum/node-crawler/pkg/crawlerdb"
 )
 
 type Crawler struct {
 	server  *p2p.Server
 	backend *ProbeBackend
+
+	db      *sql.DB
+	geoipDB *geoip2.Reader
 
 	nodes chan *common.NodeJSON
 	done  chan struct{}
@@ -35,9 +40,12 @@ func NewCrawler(
 	workers uint64,
 	db *sql.DB,
 	geoipDB *geoip2.Reader,
-	nodeDB *enode.DB,
+	nodeDBpath string,
 ) *Crawler {
 	c := &Crawler{
+		db:      db,
+		geoipDB: geoipDB,
+
 		nodes: make(chan *common.NodeJSON, workers),
 		done:  make(chan struct{}),
 	}
@@ -49,6 +57,7 @@ func NewCrawler(
 	cfg.Protocols = ProbeProtocols(c.backend)
 	cfg.ListenAddr = listenAddr
 	cfg.PrivateKey = parseKey(nodeKey)
+	cfg.NodeDatabase = nodeDBpath
 
 	for _, url := range bootnodes {
 		node := eNode(url)
@@ -64,7 +73,7 @@ func NewCrawler(
 	return c
 }
 
-func (c *Crawler) Start(input common.NodeSet, onUpdatedSet func(common.NodeSet)) {
+func (c *Crawler) Start(input common.NodeSet, flushNodes func(common.NodeSet)) {
 	known := make([]*enode.Node, 0, len(input))
 	for _, n := range input {
 		known = append(known, n.N)
@@ -81,6 +90,7 @@ func (c *Crawler) Start(input common.NodeSet, onUpdatedSet func(common.NodeSet))
 		// Copy input to output initially. Any nodes that fail validation
 		// will be dropped from output during the run.
 		output := make(common.NodeSet, len(input))
+		dbQueue := make([]common.NodeJSON, 0, 1000)
 		for id, n := range input {
 			output[id] = n
 		}
@@ -90,12 +100,19 @@ func (c *Crawler) Start(input common.NodeSet, onUpdatedSet func(common.NodeSet))
 			select {
 			case n := <-c.nodes:
 				// process the node
+				dbQueue = append(dbQueue, *n)
+				if err := crawlerdb.UpdateNodes(c.db, c.geoipDB, dbQueue); err != nil {
+					log.Warn("Error while update db", "err", err)
+				} else {
+					dbQueue = dbQueue[:0]
+				}
 				c.updateNode(output, n.N, nil) // TODO: valid error
+				updated++
 				if updated%10 == 0 {
-					onUpdatedSet(output)
+					flushNodes(output)
 				}
 			case <-c.done:
-				onUpdatedSet(output)
+				flushNodes(output)
 				return
 			}
 		}

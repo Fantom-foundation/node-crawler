@@ -33,7 +33,6 @@ import (
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	gethCommon "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/p2p/enode"
 	"github.com/oschwald/geoip2-golang"
 	"gopkg.in/urfave/cli.v1"
 	_ "modernc.org/sqlite"
@@ -49,18 +48,18 @@ var (
 		Usage:  "Crawl the ethereum network",
 		Action: crawlNodes,
 		Flags: []cli.Flag{
-			&autovacuumFlag,
-			&bootnodesFlag,
-			&busyTimeoutFlag,
-			&crawlerDBFlag,
-			&geoipdbFlag,
-			&listenAddrFlag,
-			&nodeFileFlag,
-			&nodeURLFlag,
-			&nodedbFlag,
-			&nodekeyFlag,
-			&timeoutFlag,
-			&workersFlag,
+			autovacuumFlag,
+			bootnodesFlag,
+			busyTimeoutFlag,
+			crawlerDBFlag,
+			geoipdbFlag,
+			listenAddrFlag,
+			nodeFileFlag,
+			nodeURLFlag,
+			nodedbFlag,
+			nodekeyFlag,
+			timeoutFlag,
+			workersFlag,
 			launcher.FakeNetFlag,
 			launcher.GenesisFlag,
 			launcher.ExperimentalGenesisFlag,
@@ -101,15 +100,9 @@ func crawlNodes(ctx *cli.Context) error {
 		}
 	}
 
-	var nodeDB *enode.DB
-	nodeDB, err := enode.OpenDB(ctx.String(nodedbFlag.Name))
-	if err != nil {
-		panic(err)
-	}
-
 	var geoipDB *geoip2.Reader
 	if geoipFile := ctx.String(geoipdbFlag.Name); geoipFile != "" {
-		geoipDB, err = geoip2.Open(geoipFile)
+		geoipDB, err := geoip2.Open(geoipFile)
 		if err != nil {
 			return err
 		}
@@ -191,7 +184,7 @@ func crawlNodes(ctx *cli.Context) error {
 		ctx.Uint64(workersFlag.Name),
 		db,
 		geoipDB,
-		nodeDB,
+		ctx.String(nodedbFlag.Name),
 	)
 
 	crawler.Start(inputSet, func(updatedSet common.NodeSet) {

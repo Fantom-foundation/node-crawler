@@ -12,11 +12,11 @@ func openSQLiteDB(
 ) (*sql.DB, error) {
 	db, err := sql.Open("sqlite", name)
 	if err != nil {
-		return nil, fmt.Errorf("error opening database: %w", err)
+		return nil, fmt.Errorf("error opening database %s: %w", name, err)
 	}
 	_, err = db.Exec("PRAGMA auto_vacuum = " + autovacuum)
 	if err != nil {
-		return nil, fmt.Errorf("error setting auto_vacuum: %w", err)
+		return nil, fmt.Errorf("error setting auto_vacuum to %s: %w", autovacuum, err)
 	}
 	_, err = db.Exec(fmt.Sprintf("PRAGMA busy_timeout = %d", busyTimeout))
 	if err != nil {

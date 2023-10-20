@@ -22,12 +22,12 @@ var (
 		Usage:  "API server for the crawler",
 		Action: startAPI,
 		Flags: []cli.Flag{
-			&apiDBFlag,
-			&apiListenAddrFlag,
-			&autovacuumFlag,
-			&busyTimeoutFlag,
-			&crawlerDBFlag,
-			&dropNodesTimeFlag,
+			apiDBFlag,
+			apiListenAddrFlag,
+			autovacuumFlag,
+			busyTimeoutFlag,
+			crawlerDBFlag,
+			dropNodesTimeFlag,
 		},
 	}
 )
