@@ -158,10 +158,12 @@ func crawlNodes(ctx *cli.Context) error {
 					break
 				}
 			}
-			if !experimental || ctx.Bool(launcher.ExperimentalGenesisFlag.Name) {
-				log.Warn("Genesis file doesn't refer to any trusted preset")
-			} else {
-				panic(fmt.Errorf("Genesis file doesn't refer to any trusted preset. Enable experimental genesis with --genesis.allowExperimental"))
+			if experimental {
+				if ctx.Bool(launcher.ExperimentalGenesisFlag.Name) {
+					log.Warn("Genesis file doesn't refer to any trusted preset")
+				} else {
+					panic(fmt.Errorf("Genesis file doesn't refer to any trusted preset. Enable experimental genesis with --genesis.allowExperimental"))
+				}
 			}
 		}
 
@@ -171,7 +173,9 @@ func crawlNodes(ctx *cli.Context) error {
 
 	var bootnodes []string
 	bootnodes = ctx.StringSlice(bootnodesFlag.Name)
-	bootnodes = strings.Split(bootnodes[0], ",") // NOTE: workaround as StringSlice does not work properly
+	if len(bootnodes) > 0 {
+		bootnodes = strings.Split(bootnodes[0], ",") // NOTE: workaround as StringSlice does not work properly
+	}
 	if len(bootnodes) < 1 {
 		// defaults
 		bootnodes = launcher.Bootnodes[genesisStore.Header().NetworkName]

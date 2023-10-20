@@ -3,6 +3,7 @@ package p2p
 import (
 	"crypto/ecdsa"
 	"database/sql"
+	"math"
 	"strings"
 	"time"
 
@@ -17,7 +18,8 @@ import (
 )
 
 type Crawler struct {
-	server *p2p.Server
+	server  *p2p.Server
+	backend *ProbeBackend
 
 	nodes chan *common.NodeJSON
 	done  chan struct{}
@@ -40,12 +42,11 @@ func NewCrawler(
 		done:  make(chan struct{}),
 	}
 
-	backend := NewProbeBackend(c.nodes)
-	defer backend.Close()
-	backend.LoadGenesis(genesis)
+	c.backend = NewProbeBackend(c.nodes)
+	c.backend.LoadGenesis(genesis)
 
 	cfg := launcher.NodeDefaultConfig.P2P
-	cfg.Protocols = ProbeProtocols(backend)
+	cfg.Protocols = ProbeProtocols(c.backend)
 	cfg.ListenAddr = listenAddr
 	cfg.PrivateKey = parseKey(nodeKey)
 
@@ -55,6 +56,8 @@ func NewCrawler(
 		cfg.BootstrapNodesV5 = append(cfg.BootstrapNodesV5, node)
 	}
 
+	cfg.MaxPeers = math.MaxInt
+
 	c.server = &p2p.Server{
 		Config: cfg,
 	}
@@ -62,21 +65,32 @@ func NewCrawler(
 }
 
 func (c *Crawler) Start(input common.NodeSet, onUpdatedSet func(common.NodeSet)) {
+	known := make([]*enode.Node, 0, len(input))
+	for _, n := range input {
+		known = append(known, n.N)
+	}
+	c.server.Config.BootstrapNodes = append(c.server.Config.BootstrapNodes, known...)
+	c.server.Config.BootstrapNodesV5 = append(c.server.Config.BootstrapNodesV5, known...)
+
 	err := c.server.Start()
 	if err != nil {
 		panic(err)
 	}
 	// process new nodes
 	go func() {
-		var (
-			output  common.NodeSet
-			updated = 0
-		)
+		// Copy input to output initially. Any nodes that fail validation
+		// will be dropped from output during the run.
+		output := make(common.NodeSet, len(input))
+		for id, n := range input {
+			output[id] = n
+		}
+
+		updated := 0
 		for {
 			select {
 			case n := <-c.nodes:
 				// process the node
-				output.Add(n.N)
+				c.updateNode(output, n.N, nil) // TODO: valid error
 				if updated%10 == 0 {
 					onUpdatedSet(output)
 				}
@@ -90,6 +104,7 @@ func (c *Crawler) Start(input common.NodeSet, onUpdatedSet func(common.NodeSet))
 
 func (c *Crawler) Stop() {
 	c.server.Stop()
+	c.backend.Close()
 	close(c.done)
 }
 

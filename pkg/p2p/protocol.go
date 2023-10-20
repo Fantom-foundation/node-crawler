@@ -95,12 +95,18 @@ func ProbeProtocols(backend *ProbeBackend) []p2p.Protocol {
 }
 
 func (b *ProbeBackend) handle(p *peer) error {
+	p.Log().Debug("Start peer handle", "name", p.Name())
+
 	defer p.Disconnect(p2p.DiscUselessPeer)
 	// defer discfilter.Ban(p.ID()) // don't connect again
 
 	// Check useless
 	useless := discfilter.Banned(p.Node().ID(), p.Node().Record())
+	if useless {
+		p.Log().Debug("Banned peer", "name", p.Name())
+	}
 	if !strings.Contains(strings.ToLower(p.Name()), "opera") {
+		p.Log().Debug("Not opera peer", "name", p.Name())
 		useless = true
 	}
 	if !p.Peer.Info().Network.Trusted && useless {
@@ -109,7 +115,7 @@ func (b *ProbeBackend) handle(p *peer) error {
 
 	// Execute the handshake
 	if err := p.Handshake(b.NodeInfo.Network, b.Progress, b.NodeInfo.Genesis); err != nil {
-		p.Log().Debug("Handshake failed", "err", err)
+		p.Log().Debug("Handshake failed", "name", p.Name(), "err", err)
 		return err
 	}
 
