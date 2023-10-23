@@ -7,6 +7,7 @@ require (
 	github.com/Fantom-foundation/lachesis-base v0.0.0-20230817040848-1326ba9aa59b
 	github.com/ethereum/go-ethereum v1.12.2
 	github.com/fjl/memsize v0.0.1
+	github.com/go-sql-driver/mysql v1.7.1
 	github.com/gorilla/mux v1.8.0
 	github.com/hashicorp/golang-lru v1.0.2
 	github.com/mattn/go-colorable v0.1.13
@@ -69,7 +70,6 @@ require (
 	github.com/klauspost/compress v1.15.15 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
-	github.com/lib/pq v1.10.9 // indirect
 	github.com/mattn/go-runewidth v0.0.9 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
 	github.com/minio/sha256-simd v0.1.0 // indirect

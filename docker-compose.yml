@@ -3,16 +3,15 @@ version: '3'
 services:
 
   db:
-    image: postgres:16
+    image: mysql:8.1
     environment:
-      POSTGRES_USER: ncrawl
-      POSTGRES_PASSWORD: tmppswd
-      POSTGRES_DB: crawler
-      PGDATA: /var/lib/postgresql/data/pgdata
-    user: "${UID}:${GID}"
+      MYSQL_RANDOM_ROOT_PASSWORD: true
+      MYSQL_USER: ncrawl
+      MYSQL_PASSWORD: tmppswd
+      MYSQL_DATABASE: crawler
+    user: ${UID}:${GID}
     volumes:
-     - ./data/pgdata:/var/lib/postgresql/data/pgdata
-
+     - ./data/mysql:/var/lib/mysql
 
   crawler:
     image: node-crawler-srv
@@ -23,9 +22,9 @@ services:
      - ./data:/data
     command:
         crawl
-        --addr=0.0.0.0:40431
-        --crawler-db=postgres://ncrawl:tmppswd@db:5432/crawler?sslmode=disable
-        --genesis=/data/mainnet-109331-no-history.g
+        "--addr=0.0.0.0:40431"
+        "--crawler-db=mysql://ncrawl:tmppswd@tcp(db)/crawler"
+        "--genesis=/data/mainnet-109331-no-history.g"
       # Make sure you have the GeoLite DB in the ./data directory.
       # Comment out the following two lines to disable the GeoLite DB.
       #- --geoipdb
@@ -42,8 +41,8 @@ services:
      - ./data:/data
     command:
         api
-        --crawler-db=postgres://ncrawl:tmppswd@db:5432/crawler?sslmode=disable
-        --api-db=postgres://ncrawl:tmppswd@db:5432/crawler?sslmode=disable
+        "--crawler-db=mysql://ncrawl:tmppswd@tcp(db)/crawler"
+        "--api-db=mysql://ncrawl:tmppswd@tcp(db)/crawler"
 
   frontend:
     image: node-crawler-web

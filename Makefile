@@ -1,6 +1,21 @@
+.PHONY: srv-image
+srv-image:
+	docker build -t node-crawler-srv:latest .
+
+.PHONY: web-image
+web-image:
+	docker build -t node-crawler-web:latest ./frontend
+
+
+UID := $(id -u)
+GUID := $(id -g)
+export UID
+export GID
+
+
 .PHONY: start
 start:
-	docker-compose up --build -d
+	docker-compose up -d
 
 .PHONY: stop
 stop:
@@ -14,5 +29,4 @@ clean:
 sql:
 	docker-compose exec -ti \
 	    db \
-	    psql -h localhost -p 5432 crawler
-
+	    mysql -hdb --port=3306 -uncrawl -ptmppswd crawler
