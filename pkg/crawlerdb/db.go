@@ -6,16 +6,13 @@ import (
 	"fmt"
 	"time"
 
-	_ "modernc.org/sqlite"
-
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/p2p/enr"
-	"github.com/ethereum/node-crawler/pkg/common"
-
+	"github.com/oschwald/geoip2-golang"
 	beacon "github.com/protolambda/zrnt/eth2/beacon/common"
 	"github.com/protolambda/ztyp/codec"
 
-	"github.com/oschwald/geoip2-golang"
+	"github.com/ethereum/node-crawler/pkg/common"
 )
 
 // ETH2 is a SSZ encoded field.
@@ -140,16 +137,16 @@ func UpdateNodes(db *sql.DB, geoipDB *geoip2.Reader, nodes []common.NodeJSON) er
 	return tx.Commit()
 }
 
-func CreateDB(db *sql.DB) error {
+func InitDB(db *sql.DB) error {
 	sqlStmt := `
-	CREATE TABLE nodes (
+	CREATE TABLE IF NOT EXISTS nodes (
 		ID              TEXT NOT NULL,
 		Now             TEXT NOT NULL,
 		ClientType      TEXT,
 		PK              TEXT,
 		SoftwareVersion TEXT,
 		Capabilities    TEXT,
-		NetworkID       NUMBER,
+		NetworkID       INTEGER,
 		ForkID          TEXT,
 		Blockheight     TEXT,
 		TotalDifficulty TEXT,
@@ -160,12 +157,11 @@ func CreateDB(db *sql.DB) error {
 		Coordinates     TEXT,
 		FirstSeen       TEXT,
 		LastSeen        TEXT,
-		Seq             NUMBER,
-		Score           NUMBER,
+		Seq             INTEGER,
+		Score           INTEGER,
 		ConnType        TEXT,
 		PRIMARY KEY (ID, Now)
 	);
-	DELETE FROM nodes;
 	`
 	_, err := db.Exec(sqlStmt)
 	return err

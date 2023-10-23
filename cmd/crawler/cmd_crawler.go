@@ -35,7 +35,6 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/oschwald/geoip2-golang"
 	"gopkg.in/urfave/cli.v1"
-	_ "modernc.org/sqlite"
 
 	"github.com/ethereum/node-crawler/pkg/common"
 	"github.com/ethereum/node-crawler/pkg/crawlerdb"
@@ -48,9 +47,7 @@ var (
 		Usage:  "Crawl the ethereum network",
 		Action: crawlNodes,
 		Flags: []cli.Flag{
-			autovacuumFlag,
 			bootnodesFlag,
-			busyTimeoutFlag,
 			crawlerDBFlag,
 			geoipdbFlag,
 			listenAddrFlag,
@@ -77,26 +74,14 @@ func crawlNodes(ctx *cli.Context) error {
 	var db *sql.DB
 	if ctx.IsSet(crawlerDBFlag.Name) {
 		name := ctx.String(crawlerDBFlag.Name)
-		shouldInit := false
-		if _, err := os.Stat(name); os.IsNotExist(err) {
-			shouldInit = true
-		}
-		var err error
-
-		db, err = openSQLiteDB(
-			name,
-			ctx.String(autovacuumFlag.Name),
-			ctx.Uint64(busyTimeoutFlag.Name),
-		)
+		db, err := openDB(name)
 		if err != nil {
 			panic(err)
 		}
 		log.Info("Connected to db")
-		if shouldInit {
-			log.Info("DB did not exist, init")
-			if err := crawlerdb.CreateDB(db); err != nil {
-				panic(err)
-			}
+		err = crawlerdb.InitDB(db)
+		if err != nil {
+			panic(err)
 		}
 	}
 

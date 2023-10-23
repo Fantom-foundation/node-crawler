@@ -3,17 +3,15 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"os"
 	"sync"
 	"time"
 
-	_ "modernc.org/sqlite"
-
 	"github.com/ethereum/go-ethereum/log"
+	"gopkg.in/urfave/cli.v1"
+
 	"github.com/ethereum/node-crawler/pkg/api"
 	"github.com/ethereum/node-crawler/pkg/apidb"
 	"github.com/ethereum/node-crawler/pkg/crawlerdb"
-	"gopkg.in/urfave/cli.v1"
 )
 
 var (
@@ -24,8 +22,6 @@ var (
 		Flags: []cli.Flag{
 			apiDBFlag,
 			apiListenAddrFlag,
-			autovacuumFlag,
-			busyTimeoutFlag,
 			crawlerDBFlag,
 			dropNodesTimeFlag,
 		},
@@ -33,36 +29,23 @@ var (
 )
 
 func startAPI(ctx *cli.Context) error {
-	autovacuum := ctx.String(autovacuumFlag.Name)
-	busyTimeout := ctx.Uint64(busyTimeoutFlag.Name)
-
-	crawlerDB, err := openSQLiteDB(
-		ctx.String(crawlerDBFlag.Name),
-		autovacuum,
-		busyTimeout,
+	crawlerDBPath := ctx.String(crawlerDBFlag.Name)
+	crawlerDB, err := openDB(
+		crawlerDBPath,
 	)
 	if err != nil {
 		return err
 	}
 
 	apiDBPath := ctx.String(apiDBFlag.Name)
-	shouldInit := false
-	if _, err := os.Stat(apiDBPath); os.IsNotExist(err) {
-		shouldInit = true
-	}
-	nodeDB, err := openSQLiteDB(
+	nodeDB, err := openDB(
 		apiDBPath,
-		autovacuum,
-		busyTimeout,
 	)
 	if err != nil {
 		return err
 	}
-	if shouldInit {
-		log.Info("DB did not exist, init")
-		if err := apidb.CreateDB(nodeDB); err != nil {
-			return err
-		}
+	if err := apidb.InitDB(nodeDB); err != nil {
+		return err
 	}
 	var wg sync.WaitGroup
 	wg.Add(3)

@@ -16,23 +16,10 @@ var (
 		Usage: "Listening address",
 		Value: "0.0.0.0:10000",
 	}
-	autovacuumFlag = &cli.StringFlag{
-		Name: "autovacuum",
-		Usage: ("Sets the autovacuum value for the databases. Possible values: " +
-			"NONE, FULL, or INCREMENTAL. " +
-			"https://www.sqlite.org/pragma.html#pragma_auto_vacuum"),
-		Value: "INCREMENTAL",
-	}
 	bootnodesFlag = &cli.StringSliceFlag{
 		Name: "bootnodes",
 		Usage: ("Comma separated nodes used for bootstrapping. " +
 			"Defaults to hard-coded values for the selected network"),
-	}
-	busyTimeoutFlag = &cli.Uint64Flag{
-		Name: "busy-timeout",
-		Usage: ("Sets the busy_timeout value for the database in milliseconds. " +
-			"https://www.sqlite.org/pragma.html#pragma_busy_timeout"),
-		Value: 3000,
 	}
 	crawlerDBFlag = &cli.StringFlag{
 		Name:  "crawler-db",

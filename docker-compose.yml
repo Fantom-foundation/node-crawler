@@ -1,44 +1,57 @@
 version: '3'
 
 services:
+
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ncrawl
+      POSTGRES_PASSWORD: tmppswd
+      POSTGRES_DB: crawler
+      PGDATA: /var/lib/postgresql/data/pgdata
+    user: "${UID}:${GID}"
+    volumes:
+     - ./data/pgdata:/var/lib/postgresql/data/pgdata
+
+
   crawler:
     image: node-crawler-srv
     build: ./
+    depends_on:
+     - db
     volumes:
      - ./data:/data
-    ports:
-     - 40431:40431
     command:
         crawl
         --addr=0.0.0.0:40431
-        --timeout=10m
-        --crawler-db=/data/crawler.db
-        --autovacuum=NONE
+        --crawler-db=postgres://ncrawl:tmppswd@db:5432/crawler?sslmode=disable
         --genesis=/data/mainnet-109331-no-history.g
       # Make sure you have the GeoLite DB in the ./data directory.
       # Comment out the following two lines to disable the GeoLite DB.
       #- --geoipdb
       #- /data/GeoLite2-Country.mmdb
+    ports:
+     - 40431:40431
 
   api:
     image: node-crawler-srv
     build: ./
+    depends_on:
+     - db
     volumes:
      - ./data:/data
-    depends_on:
-     - crawler
     command:
         api
-        --crawler-db=/data/crawler.db
-        --api-db=/data/api.db
+        --crawler-db=postgres://ncrawl:tmppswd@db:5432/crawler?sslmode=disable
+        --api-db=postgres://ncrawl:tmppswd@db:5432/crawler?sslmode=disable
 
   frontend:
     image: node-crawler-web
     build: ./frontend
+    depends_on:
+     - api
     volumes:
      - ./frontend/nginx.conf:/etc/nginx/conf.d/default.conf
      - ./data:/data
-    depends_on:
-     - api
     ports:
      - 8080:80

@@ -11,14 +11,14 @@ import (
 	"github.com/ethereum/node-crawler/pkg/vparser"
 )
 
-func CreateDB(db *sql.DB) error {
+func InitDB(db *sql.DB) error {
 	sqlStmt := `
-		CREATE TABLE nodes (
+		CREATE TABLE IF NOT EXISTS nodes (
 			id                  TEXT NOT NULL,
 			name                TEXT,
-			version_major       NUMBER,
-			version_minor       NUMBER,
-			version_patch       NUMBER,
+			version_major       INTEGER,
+			version_minor       INTEGER,
+			version_patch       INTEGER,
 			version_tag         TEXT,
 			version_build       TEXT,
 			version_date        TEXT,
@@ -30,9 +30,7 @@ func CreateDB(db *sql.DB) error {
 			country_name        TEXT,
 
 			PRIMARY KEY (ID)
-		);
-
-		DELETE FROM nodes;
+		);;
 	`
 	_, err := db.Exec(sqlStmt)
 	return err
@@ -127,6 +125,8 @@ func DropOldNodes(db *sql.DB, minTimePassed time.Duration) error {
 	if err != nil {
 		return err
 	}
+	defer tx.Rollback()
+
 	stmt, err := tx.Prepare(`DELETE FROM nodes WHERE last_crawled < ?`)
 	if err != nil {
 		return err

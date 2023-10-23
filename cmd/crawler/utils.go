@@ -3,25 +3,27 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"net/url"
+
+	_ "github.com/lib/pq"  // postgresql driver
+	_ "modernc.org/sqlite" // sqlite driver
 )
 
-func openSQLiteDB(
-	name,
-	autovacuum string,
-	busyTimeout uint64,
-) (*sql.DB, error) {
-	db, err := sql.Open("sqlite", name)
+func openDB(path string) (db *sql.DB, err error) {
+	dbUrl, err := url.Parse(path)
 	if err != nil {
-		return nil, fmt.Errorf("error opening database %s: %w", name, err)
-	}
-	_, err = db.Exec("PRAGMA auto_vacuum = " + autovacuum)
-	if err != nil {
-		return nil, fmt.Errorf("error setting auto_vacuum to %s: %w", autovacuum, err)
-	}
-	_, err = db.Exec(fmt.Sprintf("PRAGMA busy_timeout = %d", busyTimeout))
-	if err != nil {
-		return nil, fmt.Errorf("error setting busy_timeout: %w", err)
+		err = fmt.Errorf("error opening database %s: %w", path, err)
+		return
 	}
 
-	return db, nil
+	if dbUrl.IsAbs() && len(dbUrl.Scheme) > 0 {
+		db, err = sql.Open(dbUrl.Scheme, path)
+	} else {
+		db, err = sql.Open("sqlite", path)
+	}
+
+	if err != nil {
+		err = fmt.Errorf("error opening database %s: %w", path, err)
+	}
+	return
 }
