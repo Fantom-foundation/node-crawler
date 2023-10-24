@@ -2,11 +2,13 @@ package crawlerdb
 
 import (
 	"database/sql"
+	"fmt"
+	"time"
 )
 
 type CrawledNode struct {
 	ID              string
-	Now             string
+	Now             time.Time
 	ClientType      string
 	SoftwareVersion uint64
 	Capabilities    string
@@ -16,9 +18,8 @@ type CrawledNode struct {
 }
 
 func ReadAndDeleteUnseenNodes(db *sql.Tx) ([]CrawledNode, error) {
-	queryStmt := `
-		DELETE FROM nodes
-		RETURNING
+	rows, err := db.Query(`
+		SELECT
 			ID,
 			Now,
 			ClientType,
@@ -27,9 +28,8 @@ func ReadAndDeleteUnseenNodes(db *sql.Tx) ([]CrawledNode, error) {
 			NetworkID,
 			Country,
 			ForkID
-	`
-	rows, err := db.Query(queryStmt)
-
+		FROM connections
+	`)
 	if err != nil {
 		return nil, err
 	}
@@ -39,7 +39,7 @@ func ReadAndDeleteUnseenNodes(db *sql.Tx) ([]CrawledNode, error) {
 		var node CrawledNode
 		err = rows.Scan(
 			&node.ID,
-			&node.Now,
+			&timeScanner{&node.Now},
 			&node.ClientType,
 			&node.SoftwareVersion,
 			&node.Capabilities,
@@ -52,5 +52,35 @@ func ReadAndDeleteUnseenNodes(db *sql.Tx) ([]CrawledNode, error) {
 		}
 		nodes = append(nodes, node)
 	}
+
+	_, err = db.Exec(`
+		DELETE FROM connections
+	`)
+	if err != nil {
+		return nil, err
+	}
+
 	return nodes, nil
+}
+
+// timeScanner implements sql.Scanner interface
+type timeScanner struct {
+	*time.Time
+}
+
+func (t *timeScanner) Scan(src interface{}) (err error) {
+	const layout = "2006-01-02 15:04:05"
+
+	switch v := src.(type) {
+	case time.Time:
+		*t.Time = v
+	case []uint8:
+		*t.Time, err = time.Parse(layout, string(v))
+	case string:
+		*t.Time, err = time.Parse(layout, v)
+	default:
+		err = fmt.Errorf("error while scan time: got %T from db", v)
+	}
+
+	return
 }

@@ -3,7 +3,6 @@ package apidb
 import (
 	"database/sql"
 	"sort"
-	"strings"
 	"time"
 
 	"github.com/ethereum/go-ethereum/log"
@@ -12,9 +11,9 @@ import (
 )
 
 func InitDB(db *sql.DB) error {
-	sqlStmt := `
+	_, err := db.Exec(`
 		CREATE TABLE IF NOT EXISTS nodes (
-			id                  TEXT NOT NULL,
+			ID                  VARCHAR(66) NOT NULL,
 			name                TEXT,
 			version_major       INTEGER,
 			version_minor       INTEGER,
@@ -31,18 +30,19 @@ func InitDB(db *sql.DB) error {
 
 			PRIMARY KEY (ID)
 		);;
-	`
-	_, err := db.Exec(sqlStmt)
+	`)
 	return err
 }
 
 func InsertCrawledNodes(db *sql.DB, crawledNodes []crawlerdb.CrawledNode) error {
-	log.Info("Writing nodes to db", "len", len(crawledNodes))
+	log.Info("Writing nodes to db", "count", len(crawledNodes))
 
 	tx, err := db.Begin()
 	if err != nil {
 		return err
 	}
+	defer tx.Rollback()
+
 	stmt, err := tx.Prepare(`
 		INSERT INTO nodes(
 			id,
@@ -60,25 +60,21 @@ func InsertCrawledNodes(db *sql.DB, crawledNodes []crawlerdb.CrawledNode) error 
 			last_crawled,
 			country_name
 		)
-		VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-		ON CONFLICT(id) DO UPDATE
-		SET
-			name = excluded.name,
-			version_major = excluded.version_major,
-			version_minor = excluded.version_minor,
-			version_patch = excluded.version_patch,
-			version_tag = excluded.version_tag,
-			version_build = excluded.version_build,
-			version_date = excluded.version_date,
-			os_name = excluded.os_name,
-			os_architecture = excluded.os_architecture,
-			language_name = excluded.language_name,
-			language_version = excluded.language_version,
-			last_crawled = excluded.last_crawled,
-			country_name = excluded.country_name
-		WHERE
-			name = excluded.name
-			OR excluded.name != "unknown"
+		VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?) AS new
+		ON DUPLICATE KEY UPDATE
+			name = new.name,
+			version_major = new.version_major,
+			version_minor = new.version_minor,
+			version_patch = new.version_patch,
+			version_tag = new.version_tag,
+			version_build = new.version_build,
+			version_date = new.version_date,
+			os_name = new.os_name,
+			os_architecture = new.os_architecture,
+			language_name = new.language_name,
+			language_version = new.language_version,
+			last_crawled = new.last_crawled,
+			country_name = new.country_name
 	`)
 	if err != nil {
 		return err
@@ -88,7 +84,7 @@ func InsertCrawledNodes(db *sql.DB, crawledNodes []crawlerdb.CrawledNode) error 
 	// we want to make sure when we are upserting, we get the most recent
 	// scrape upserted last.
 	sort.SliceStable(crawledNodes, func(i, j int) bool {
-		return strings.Compare(crawledNodes[i].Now, crawledNodes[j].Now) < 0
+		return crawledNodes[i].Now.Before(crawledNodes[j].Now)
 	})
 
 	for _, node := range crawledNodes {
@@ -107,12 +103,14 @@ func InsertCrawledNodes(db *sql.DB, crawledNodes []crawlerdb.CrawledNode) error 
 				parsed.Os.Architecture,
 				parsed.Language.Name,
 				parsed.Language.Version,
-				time.Now(),
+				node.Now,
 				node.Country,
 			)
 			if err != nil {
 				panic(err)
 			}
+		} else {
+			log.Warn("cann't parse client", "val", node.ClientType)
 		}
 	}
 	return tx.Commit()

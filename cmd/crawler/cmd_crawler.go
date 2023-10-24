@@ -64,7 +64,7 @@ var (
 	}
 )
 
-func crawlNodes(ctx *cli.Context) error {
+func crawlNodes(ctx *cli.Context) (err error) {
 	var inputSet common.NodeSet
 	nodesFile := ctx.String(nodeFileFlag.Name)
 	if nodesFile != "" && gethCommon.FileExist(nodesFile) {
@@ -74,7 +74,7 @@ func crawlNodes(ctx *cli.Context) error {
 	var db *sql.DB
 	if ctx.IsSet(crawlerDBFlag.Name) {
 		name := ctx.String(crawlerDBFlag.Name)
-		db, err := openDB(name)
+		db, err = openDB(name)
 		if err != nil {
 			panic(err)
 		}
@@ -87,9 +87,9 @@ func crawlNodes(ctx *cli.Context) error {
 
 	var geoipDB *geoip2.Reader
 	if geoipFile := ctx.String(geoipdbFlag.Name); geoipFile != "" {
-		geoipDB, err := geoip2.Open(geoipFile)
+		geoipDB, err = geoip2.Open(geoipFile)
 		if err != nil {
-			return err
+			return
 		}
 		defer geoipDB.Close()
 	}
@@ -180,7 +180,7 @@ func crawlNodes(ctx *cli.Context) error {
 	defer crawler.Stop()
 
 	wait()
-	return nil
+	return
 }
 
 func wait() {

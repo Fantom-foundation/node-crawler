@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"database/sql"
 	"fmt"
-	"time"
 
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/p2p/enr"
@@ -15,23 +14,49 @@ import (
 	"github.com/ethereum/node-crawler/pkg/common"
 )
 
+func InitDB(db *sql.DB) error {
+	_, err := db.Exec(`
+	CREATE TABLE IF NOT EXISTS connections (
+		ID              VARCHAR(66) NOT NULL,
+		Now             DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+		ClientType      TEXT,
+		PK              TEXT,
+		SoftwareVersion TEXT,
+		Capabilities    TEXT,
+		NetworkID       INTEGER,
+		ForkID          TEXT,
+		Blockheight     TEXT,
+		HeadHash        TEXT,
+		IP              TEXT,
+		Country         TEXT,
+		City            TEXT,
+		Coordinates     TEXT,
+		FirstSeen       TEXT,
+		LastSeen        TEXT,
+		Seq             INTEGER,
+		Score           INTEGER,
+		ConnType        TEXT,
+		PRIMARY KEY (ID, Now)
+	);
+	`)
+	return err
+}
+
 // ETH2 is a SSZ encoded field.
 type ETH2 []byte
 
 func (v ETH2) ENRKey() string { return "eth2" }
 
 func UpdateNodes(db *sql.DB, geoipDB *geoip2.Reader, nodes []common.NodeJSON) error {
-	log.Info("Writing nodes to db", "nodes", len(nodes))
+	log.Info("Writing connections to db", "count", len(nodes))
 
-	now := time.Now()
 	tx, err := db.Begin()
 	if err != nil {
 		return err
 	}
 	stmt, err := tx.Prepare(
-		`INSERT INTO nodes(
+		`INSERT INTO connections(
 			ID,
-			Now,
 			ClientType,
 			PK,
 			SoftwareVersion,
@@ -39,7 +64,6 @@ func UpdateNodes(db *sql.DB, geoipDB *geoip2.Reader, nodes []common.NodeJSON) er
 			NetworkID,
 			ForkID,
 			Blockheight,
-			TotalDifficulty,
 			HeadHash,
 			IP,
 			Country,
@@ -50,7 +74,7 @@ func UpdateNodes(db *sql.DB, geoipDB *geoip2.Reader, nodes []common.NodeJSON) er
 			Seq,
 			Score,
 			ConnType
-		) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+		) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 	)
 	if err != nil {
 		return err
@@ -109,7 +133,6 @@ func UpdateNodes(db *sql.DB, geoipDB *geoip2.Reader, nodes []common.NodeJSON) er
 
 		_, err = stmt.Exec(
 			n.N.ID().String(),
-			now.String(),
 			info.ClientType,
 			pk,
 			info.SoftwareVersion,
@@ -117,7 +140,6 @@ func UpdateNodes(db *sql.DB, geoipDB *geoip2.Reader, nodes []common.NodeJSON) er
 			info.NetworkID,
 			fid,
 			info.Blockheight,
-			info.TotalDifficulty.String(),
 			info.HeadHash.String(),
 			n.N.IP().String(),
 			country,
@@ -135,34 +157,4 @@ func UpdateNodes(db *sql.DB, geoipDB *geoip2.Reader, nodes []common.NodeJSON) er
 	}
 
 	return tx.Commit()
-}
-
-func InitDB(db *sql.DB) error {
-	sqlStmt := `
-	CREATE TABLE IF NOT EXISTS nodes (
-		ID              TEXT NOT NULL,
-		Now             TEXT NOT NULL,
-		ClientType      TEXT,
-		PK              TEXT,
-		SoftwareVersion TEXT,
-		Capabilities    TEXT,
-		NetworkID       INTEGER,
-		ForkID          TEXT,
-		Blockheight     TEXT,
-		TotalDifficulty TEXT,
-		HeadHash        TEXT,
-		IP              TEXT,
-		Country         TEXT,
-		City            TEXT,
-		Coordinates     TEXT,
-		FirstSeen       TEXT,
-		LastSeen        TEXT,
-		Seq             INTEGER,
-		Score           INTEGER,
-		ConnType        TEXT,
-		PRIMARY KEY (ID, Now)
-	);
-	`
-	_, err := db.Exec(sqlStmt)
-	return err
 }
