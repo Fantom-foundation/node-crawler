@@ -12,6 +12,8 @@ services:
     user: ${UID}:${GID}
     volumes:
      - ./data/mysql:/var/lib/mysql
+    ports:
+     - 127.0.0.1:3306:3306
 
   crawler:
     image: node-crawler-srv

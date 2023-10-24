@@ -16,9 +16,11 @@ GUID := $(id -g)
 export UID
 export GID
 
+data/mainnet-109331-no-history.g:
+	wget -O data/mainnet-109331-no-history.g https://download.fantom.network/mainnet-109331-no-history.g
 
 .PHONY: start
-start:
+start: data/mainnet-109331-no-history.g
 	docker-compose up -d
 
 .PHONY: stop
