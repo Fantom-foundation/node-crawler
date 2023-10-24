@@ -1,10 +1,14 @@
 .PHONY: srv-image
 srv-image:
 	docker build -t node-crawler-srv:latest .
+	docker image prune -f
+	docker builder prune -f
 
 .PHONY: web-image
 web-image:
 	docker build -t node-crawler-web:latest ./frontend
+	docker image prune -f
+	docker builder prune -f
 
 
 UID := $(id -u)

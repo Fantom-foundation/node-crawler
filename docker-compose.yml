@@ -23,7 +23,7 @@ services:
     command:
         crawl
         "--addr=0.0.0.0:40431"
-        "--crawler-db=mysql://ncrawl:tmppswd@tcp(db)/crawler"
+        "--crawler-db=mysql://ncrawl:tmppswd@tcp(db:3306)/crawler"
         "--genesis=/data/mainnet-109331-no-history.g"
       # Make sure you have the GeoLite DB in the ./data directory.
       # Comment out the following two lines to disable the GeoLite DB.
@@ -41,8 +41,8 @@ services:
      - ./data:/data
     command:
         api
-        "--crawler-db=mysql://ncrawl:tmppswd@tcp(db)/crawler"
-        "--api-db=mysql://ncrawl:tmppswd@tcp(db)/crawler"
+        "--crawler-db=mysql://ncrawl:tmppswd@tcp(db:3306)/crawler"
+        "--api-db=mysql://ncrawl:tmppswd@tcp(db:3306)/crawler"
 
   frontend:
     image: node-crawler-web
