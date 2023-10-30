@@ -188,14 +188,16 @@ func (a *Api) handleDashboard(rw http.ResponseWriter, r *http.Request) {
 	nameCountInQuery := strings.Count(vars["filter"], "\"name:")
 
 	// Where
-	where, whereArgs, err := addFilterArgs(vars)
+	whereSql, whereArgs, err := addFilterArgs(vars)
 	if err != nil {
 		log.Error("Failure when adding filter to the query", "err", err)
 		return
 	}
 	if whereArgs != nil {
-		where = "WHERE " + where
+		whereSql = "WHERE " + whereSql
 	}
+
+	log.Debug("WHERE condition", "sql", whereSql, "args", whereArgs)
 
 	var topLanguageQuery string
 	if nameCountInQuery == 1 {
@@ -207,10 +209,10 @@ func (a *Api) handleDashboard(rw http.ResponseWriter, r *http.Request) {
 				SELECT
 					language_name || language_version as Name
 				FROM nodes %v
-			)
+			) x
 			GROUP BY Name
 			ORDER BY Count DESC
-		`, where)
+		`, whereSql)
 	} else {
 		topLanguageQuery = fmt.Sprintf(`
 			SELECT
@@ -219,7 +221,7 @@ func (a *Api) handleDashboard(rw http.ResponseWriter, r *http.Request) {
 			FROM nodes %v
 			GROUP BY language_name
 			ORDER BY Count DESC
-		`, where)
+		`, whereSql)
 	}
 
 	topClientsQuery := fmt.Sprintf(`
@@ -229,7 +231,7 @@ func (a *Api) handleDashboard(rw http.ResponseWriter, r *http.Request) {
 		FROM nodes %v
 		GROUP BY name
 		ORDER BY count DESC
-	`, where)
+	`, whereSql)
 	topOsQuery := fmt.Sprintf(`
 		SELECT
 			os_name as Name,
@@ -237,7 +239,7 @@ func (a *Api) handleDashboard(rw http.ResponseWriter, r *http.Request) {
 		FROM nodes %v
 		GROUP BY os_name
 		ORDER BY count DESC
-	`, where)
+	`, whereSql)
 	topVersionQuery := fmt.Sprintf(`
 		SELECT
 			Name,
@@ -246,10 +248,10 @@ func (a *Api) handleDashboard(rw http.ResponseWriter, r *http.Request) {
 			SELECT
 				version_major || '.' || version_minor || '.' || version_patch as Name
 			FROM nodes %v
-		)
+		) x
 		GROUP BY Name
 		ORDER BY Count DESC
-	`, where)
+	`, whereSql)
 	topCountriesQuery := fmt.Sprintf(`
 		SELECT
 			country_name as Name,
@@ -257,7 +259,7 @@ func (a *Api) handleDashboard(rw http.ResponseWriter, r *http.Request) {
 		FROM nodes %v
 		GROUP BY country_name
 		ORDER BY count DESC
-	`, where)
+	`, whereSql)
 
 	clients := a.cachedOrQuery("c", topClientsQuery, whereArgs)
 	language := a.cachedOrQuery("l", topLanguageQuery, whereArgs)

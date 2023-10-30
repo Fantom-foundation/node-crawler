@@ -56,7 +56,7 @@ function Home() {
 
     if (filterCount(searchFilters) === 0) {
       // Deep clone since we are mutating it.
-      searchFilters = JSON.parse(JSON.stringify(knownNodesFilter));
+      // searchFilters = JSON.parse(JSON.stringify(knownNodesFilter));
     }
 
     setFilters(searchFilters)

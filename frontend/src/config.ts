@@ -5,6 +5,7 @@ import { FilterGroup, generateQueryStringFromFilterGroups } from "./data/FilterU
 export const colors = scaleOrdinal(schemeCategory10).range();
 
 export const knownNodesFilter: FilterGroup[] = [
+  [{ name: 'name', value: 'go-opera' }],
   [{ name: 'name', value: 'geth' }],
   [{ name: 'name', value: 'nethermind' }],
   [{ name: 'name', value: 'turbogeth' }],
