@@ -245,9 +245,7 @@ func (c *crawler) getClientInfoLoop() {
 				"version", info.SoftwareVersion,
 				"network_id", info.NetworkID,
 				"caps", info.Capabilities,
-				"fork_id", info.ForkID,
 				"height", info.Blockheight,
-				"td", info.TotalDifficulty,
 				"head", info.HeadHash,
 			)
 		}

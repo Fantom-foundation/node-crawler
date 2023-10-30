@@ -14,7 +14,6 @@ type CrawledNode struct {
 	Capabilities    string
 	NetworkID       uint64
 	Country         string
-	ForkID          string
 }
 
 func ReadAndDeleteUnseenNodes(db *sql.Tx) ([]CrawledNode, error) {
@@ -26,8 +25,7 @@ func ReadAndDeleteUnseenNodes(db *sql.Tx) ([]CrawledNode, error) {
 			SoftwareVersion,
 			Capabilities,
 			NetworkID,
-			Country,
-			ForkID
+			Country
 		FROM connections
 	`)
 	if err != nil {
@@ -45,7 +43,6 @@ func ReadAndDeleteUnseenNodes(db *sql.Tx) ([]CrawledNode, error) {
 			&node.Capabilities,
 			&node.NetworkID,
 			&node.Country,
-			&node.ForkID,
 		)
 		if err != nil {
 			return nil, err

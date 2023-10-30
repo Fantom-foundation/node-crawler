@@ -24,7 +24,6 @@ func InitDB(db *sql.DB) error {
 		SoftwareVersion TEXT,
 		Capabilities    TEXT,
 		NetworkID       INTEGER,
-		ForkID          TEXT,
 		Blockheight     TEXT,
 		HeadHash        TEXT,
 		IP              TEXT,
@@ -62,7 +61,6 @@ func UpdateNodes(db *sql.DB, geoipDB *geoip2.Reader, nodes []common.NodeJSON) er
 			SoftwareVersion,
 			Capabilities,
 			NetworkID,
-			ForkID,
 			Blockheight,
 			HeadHash,
 			IP,
@@ -74,7 +72,7 @@ func UpdateNodes(db *sql.DB, geoipDB *geoip2.Reader, nodes []common.NodeJSON) er
 			Seq,
 			Score,
 			ConnType
-		) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+		) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 	)
 	if err != nil {
 		return err
@@ -99,14 +97,13 @@ func UpdateNodes(db *sql.DB, geoipDB *geoip2.Reader, nodes []common.NodeJSON) er
 		if n.N.Load(&portTCP) == nil {
 			connType = "TCP"
 		}
-		fid := fmt.Sprintf("Hash: %v, Next %v", info.ForkID.Hash, info.ForkID.Next)
 
 		var eth2 ETH2
 		if n.N.Load(&eth2) == nil {
 			info.ClientType = "eth2"
 			var dat beacon.Eth2Data
 			if err := dat.Deserialize(codec.NewDecodingReader(bytes.NewReader(eth2), uint64(len(eth2)))); err == nil {
-				fid = fmt.Sprintf("Hash: %v, Next %v", dat.ForkDigest, dat.NextForkEpoch)
+				_ = fmt.Sprintf("Hash: %v, Next %v", dat.ForkDigest, dat.NextForkEpoch)
 			}
 		}
 		var caps string
@@ -138,7 +135,6 @@ func UpdateNodes(db *sql.DB, geoipDB *geoip2.Reader, nodes []common.NodeJSON) er
 			info.SoftwareVersion,
 			caps,
 			info.NetworkID,
-			fid,
 			info.Blockheight,
 			info.HeadHash.String(),
 			n.N.IP().String(),

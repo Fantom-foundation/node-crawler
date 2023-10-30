@@ -12,6 +12,7 @@ import (
 	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/opera"
 	"github.com/Fantom-foundation/lachesis-base/hash"
+	eth "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/forkid"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/p2p"
@@ -136,22 +137,18 @@ func (b *ProbeBackend) handle(p *peer) error {
 
 		switch p.Status {
 		case PeerUseless, PeerEvil:
-			// TODO: fill the all
 			b.output <- &common.NodeJSON{
 				N: p.Node(),
 				Info: &common.ClientInfo{
-					Blockheight: strconv.FormatUint(uint64(p.progress.LastBlockIdx), 10),
+					ClientType:      p.Fullname(),
+					SoftwareVersion: uint64(p.version),
+					Capabilities:    p.Caps(),
+					NetworkID:       b.NodeInfo.Network,
+					Blockheight:     strconv.FormatUint(uint64(p.progress.LastBlockIdx), 10),
+					HeadHash:        eth.Hash(p.progress.LastBlockAtropos),
 				},
 			}
 			return nil
-			/*
-				case PeerEvil:
-					p.Status = PeerFetching
-					leecher := b.startDagLeecher(p.progress.Epoch)
-					leecher.Start()
-					defer leecher.Stop()
-					p.Log().Info("PEER fetching", "epoch", p.progress.Epoch)
-			*/
 		}
 	}
 
