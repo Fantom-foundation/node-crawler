@@ -20,14 +20,16 @@ func ReadAndDeleteUnseenNodes(db *sql.Tx) ([]CrawledNode, error) {
 	rows, err := db.Query(`
 		SELECT
 			ID,
-			Now,
-			ClientType,
-			SoftwareVersion,
-			Capabilities,
-			NetworkID,
-			Country
+			Max(Now),
+			Max(ClientType),
+			Max(SoftwareVersion),
+			Max(Capabilities),
+			Max(NetworkID),
+			Max(Country)
 		FROM connections
-	`)
+		WHERE not Counted
+		GROUP BY ID
+	;`)
 	if err != nil {
 		return nil, err
 	}
@@ -51,8 +53,10 @@ func ReadAndDeleteUnseenNodes(db *sql.Tx) ([]CrawledNode, error) {
 	}
 
 	_, err = db.Exec(`
-		DELETE FROM connections
-	`)
+		UPDATE connections
+		SET Counted = True
+		WHERE not Counted
+	;`)
 	if err != nil {
 		return nil, err
 	}

@@ -19,6 +19,7 @@ func InitDB(db *sql.DB) error {
 	CREATE TABLE IF NOT EXISTS connections (
 		ID              VARCHAR(66) NOT NULL,
 		Now             DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+		Counted         BOOL NOT NULL DEFAULT False,
 		ClientType      TEXT,
 		PK              TEXT,
 		SoftwareVersion TEXT,
