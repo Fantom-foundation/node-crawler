@@ -1,8 +1,9 @@
 package vparser
 
 import (
-	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestParseVersionString(t *testing.T) {
@@ -15,22 +16,23 @@ func TestParseVersionString(t *testing.T) {
 	var test_data = []ParseTestCase{
 		{
 			name: "single",
-			args: "geth",
+			args: "opera",
 			want: &ParsedInfo{
-				Name: "geth",
+				Name: "opera",
 			},
 		},
 		{
 			name: "perfect-case",
-			args: "Geth/v1.10.3-stable-991384a7/linux-amd64/go1.16.3",
+			args: "go-opera/v1.1.2-rc.6-825a85c9-1689192286/linux-amd64/go1.20.4",
 			want: &ParsedInfo{
-				Name: "geth",
+				Name: "go-opera",
 				Version: Version{
 					Major: 1,
-					Minor: 10,
-					Patch: 3,
-					Tag:   "stable",
-					Build: "991384a7",
+					Minor: 1,
+					Patch: 2,
+					Tag:   "rc.6",
+					Build: "825a85c9",
+					Date:  "1689192286",
 				},
 				Os: OSInfo{
 					Os:           "linux",
@@ -38,49 +40,52 @@ func TestParseVersionString(t *testing.T) {
 				},
 				Language: LanguageInfo{
 					Name:    "go",
-					Version: "1.16.3",
+					Version: "1.20.4",
 				},
 			},
 		},
 		{
 			name: "without-build",
-			args: "Geth/v1.10.4-stable/linux-x64/go1.16.4",
+			args: "go-opera/v1.1.2-rc.6/linux-amd64/go1.19.3",
 			want: &ParsedInfo{
-				Name: "geth",
+				Name: "go-opera",
 				Version: Version{
 					Major: 1,
-					Minor: 10,
-					Patch: 4,
-					Tag:   "stable",
+					Minor: 1,
+					Patch: 2,
+					Tag:   "rc.6",
+					Build: "",
 				},
 				Os: OSInfo{
 					Os:           "linux",
-					Architecture: "x64",
+					Architecture: "amd64",
 				},
 				Language: LanguageInfo{
 					Name:    "go",
-					Version: "1.16.4",
+					Version: "1.19.3",
 				},
 			},
 		},
 		{
-			name: "java",
-			args: "besu/v21.7.0-RC1/darwin-x86_64/corretto-java-11",
+			name: "extended-tag",
+			args: "go-opera/v1.1.2-txtracing-rc.6.1-fef7ab09-1693339901/linux-amd64/go1.19.12",
 			want: &ParsedInfo{
-				Name: "besu",
+				Name: "go-opera",
 				Version: Version{
-					Major: 21,
-					Minor: 7,
-					Patch: 0,
-					Tag:   "rc1",
+					Major: 1,
+					Minor: 1,
+					Patch: 2,
+					Tag:   "txtracing-rc.6.1",
+					Build: "fef7ab09",
+					Date:  "1693339901",
 				},
 				Os: OSInfo{
-					Os:           "darwin",
-					Architecture: "x86_64",
+					Os:           "linux",
+					Architecture: "amd64",
 				},
 				Language: LanguageInfo{
-					Name:    "java",
-					Version: "11",
+					Name:    "go",
+					Version: "1.19.12",
 				},
 			},
 		},
@@ -142,11 +147,10 @@ func TestParseVersionString(t *testing.T) {
 		},
 	}
 
-	for _, tt := range test_data {
+	for i, tt := range test_data {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := ParseVersionString(tt.args); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("ParseVersionString() = %v, want %v", got, tt.want)
-			}
+			got := ParseVersionString(tt.args)
+			require.Equal(t, tt.want, got, i)
 		})
 	}
 }

@@ -56,25 +56,23 @@ func ParseVersionString(input string) *ParsedInfo {
 
 	// version string consists of four components, divided by /
 	s := strings.Split(strings.ToLower(input), "/")
-	l := len(s)
+	parts := len(s)
 	output.Name = strings.ToLower(s[0])
 	if output.Name == "" {
 		return nil
 	}
 
-	if l == 5 || l == 7 {
+	if parts == 5 || parts == 7 {
 		output.Label = s[1]
 		output.Version = parseVersion(s[2])
 		output.Os = parseOS(s[3])
 		output.Language = parseLanguage(s[4])
-	} else if l == 4 {
+	} else if parts == 4 {
 		output.Version = parseVersion(s[1])
 		output.Os = parseOS(s[2])
 		output.Language = parseLanguage(s[3])
-	} else if (l == 1 || l == 0) && (output.Name == "tmp" || output.Name == "eth2") {
-		// These are usually "tmp" nodes that cannot be parsed.
 	} else {
-		fmt.Printf("Parser Error: Invalid length of '%d' for input: '%s'\n", l, input)
+		output.Name = input
 	}
 
 	if output.Version.Error {
@@ -99,8 +97,8 @@ func parseLanguage(input string) LanguageInfo {
 func parseVersion(input string) Version {
 	var vers Version
 	split := strings.Split(input, "-")
-	split_length := len(split)
-	switch len(split) {
+	parts := len(split)
+	switch parts {
 	case 8:
 		fallthrough
 	case 7:
@@ -108,9 +106,9 @@ func parseVersion(input string) Version {
 	case 6:
 		fallthrough
 	case 5:
-		vers.Date = split[split_length-1]
-		vers.Build = split[split_length-2]
-		vers.Tag = strings.Join(split[1:split_length-3], "")
+		vers.Date = split[parts-1]
+		vers.Build = split[parts-2]
+		vers.Tag = strings.Join(split[1:parts-2], "-")
 		vers.Major, vers.Minor, vers.Patch = parseVersionNumber(split[0])
 	case 4:
 		// Date
