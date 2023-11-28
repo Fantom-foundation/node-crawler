@@ -38,7 +38,7 @@ func New(address string, sdb *sql.DB) *Api {
 
 func (a *Api) dropCacheLoop() {
 	// Drop the cache every 2 minutes
-	ticker := time.NewTicker(2 * time.Minute)
+	ticker := time.NewTicker(time.Minute)
 	for range ticker.C {
 		log.Info("Dropping Cache")
 		c, err := lru.New(256)
@@ -97,6 +97,10 @@ func addFilterArgs(vars map[string]string) (string, []interface{}, error) {
 			query += fmt.Sprintf("OR (%v) ", inner)
 		}
 	}
+	if len(args) < 1 {
+		query = ""
+	}
+
 	return query, args, nil
 }
 
@@ -144,7 +148,7 @@ func (a *Api) cachedOrQuery(prefix, query string, whereArgs []interface{}) []cli
 		var err error
 		result, err = clientQuery(a.db, query, whereArgs...)
 		if err != nil {
-			log.Error("Failure in the query", "err", err)
+			log.Error("Failure in the query", "sql", query, "err", err)
 		}
 	}
 	return result
@@ -185,7 +189,7 @@ func (a *Api) handleDashboard(rw http.ResponseWriter, r *http.Request) {
 
 	vars := mux.Vars(r)
 
-	nameCountInQuery := strings.Count(vars["filter"], "\"name:")
+	nameFilter := strings.Count(vars["filter"], "\"name:") > 0
 
 	// Where
 	whereSql, whereArgs, err := addFilterArgs(vars)
@@ -193,37 +197,19 @@ func (a *Api) handleDashboard(rw http.ResponseWriter, r *http.Request) {
 		log.Error("Failure when adding filter to the query", "err", err)
 		return
 	}
-	if whereArgs != nil {
+	if len(whereSql) > 0 {
 		whereSql = "WHERE " + whereSql
 	}
-
 	log.Debug("WHERE condition", "sql", whereSql, "args", whereArgs)
 
-	var topLanguageQuery string
-	if nameCountInQuery == 1 {
-		topLanguageQuery = fmt.Sprintf(`
+	topLanguageQuery := fmt.Sprintf(`
 			SELECT
-				Name,
-				Count(*) as Count
-			FROM (
-				SELECT
-					language_name || language_version as Name
-				FROM nodes %v
-			) x
-			GROUP BY Name
-			ORDER BY Count DESC
-		`, whereSql)
-	} else {
-		topLanguageQuery = fmt.Sprintf(`
-			SELECT
-				language_name as Name,
-				COUNT(language_name) as Count
+				language as Name,
+				COUNT(*) as Count
 			FROM nodes %v
-			GROUP BY language_name
+			GROUP BY language
 			ORDER BY Count DESC
 		`, whereSql)
-	}
-
 	topClientsQuery := fmt.Sprintf(`
 		SELECT
 			name as Name,
@@ -242,14 +228,10 @@ func (a *Api) handleDashboard(rw http.ResponseWriter, r *http.Request) {
 	`, whereSql)
 	topVersionQuery := fmt.Sprintf(`
 		SELECT
-			Name,
-			Count(*) as Count
-		FROM (
-			SELECT
-				version_major || '.' || version_minor || '.' || version_patch as Name
-			FROM nodes %v
-		) x
-		GROUP BY Name
+			version as Name,
+			COUNT(*) as Count
+		FROM nodes %v
+		GROUP BY version
 		ORDER BY Count DESC
 	`, whereSql)
 	topCountriesQuery := fmt.Sprintf(`
@@ -267,7 +249,7 @@ func (a *Api) handleDashboard(rw http.ResponseWriter, r *http.Request) {
 	countries := a.cachedOrQuery("co", topCountriesQuery, whereArgs)
 
 	var versions []client
-	if nameCountInQuery == 1 {
+	if nameFilter {
 		versions = a.cachedOrQuery("v", topVersionQuery, whereArgs)
 	}
 
@@ -309,19 +291,15 @@ func clientQuery(db *sql.DB, query string, args ...interface{}) ([]client, error
 
 func validateKey(key string) bool {
 	validKeys := map[string]struct{}{
-		"id":               {},
-		"name":             {},
-		"version_major":    {},
-		"version_minor":    {},
-		"version_patch":    {},
-		"version_tag":      {},
-		"version_build":    {},
-		"version_date":     {},
-		"os_name":          {},
-		"os_architecture":  {},
-		"language_name":    {},
-		"language_version": {},
-		"country":          {},
+		"id":              {},
+		"name":            {},
+		"version":         {},
+		"version_build":   {},
+		"version_date":    {},
+		"os_name":         {},
+		"os_architecture": {},
+		"language":        {},
+		"country":         {},
 	}
 	_, ok := validKeys[key]
 	return ok

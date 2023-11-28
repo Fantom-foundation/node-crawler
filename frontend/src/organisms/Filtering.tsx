@@ -48,16 +48,12 @@ const EditableInput: React.FC<EditableProps> = forwardRef<EditableProps, 'div'>(
       <VStack borderWidth="thick" borderStyle="dashed" rounded="lg" p="2" ref={ref} {...rest}>
         <Select size="xs" value={editItem.name} onChange={(e) => setEditItem(item => ({ ...item, name: e.target.value }))}>
           {(editItem.name === 'name' || cachedNames['name']) && (<option value="name">Client Name</option>)}
-          {(editItem.name === 'version_major' || cachedNames['version_major']) && (<option value="version_major">Version (major)</option>)}
-          {(editItem.name === 'version_minor' || cachedNames['version_minor']) && (<option value="version_minor">Version (minor)</option>)}
-          {(editItem.name === 'version_patch' || cachedNames['version_patch']) && (<option value="version_patch">Version (patch)</option>)}
-          {(editItem.name === 'version_tag' || cachedNames['version_tag']) && (<option value="version_tag">Version (tag)</option>)}
+          {(editItem.name === 'version' || cachedNames['version']) && (<option value="version">Version (number)</option>)}
           {(editItem.name === 'version_build' || cachedNames['version_build']) && (<option value="version_build">Version (build)</option>)}
           {(editItem.name === 'version_date' || cachedNames['version_date']) && (<option value="version_date">Version (date)</option>)}
           {(editItem.name === 'os_name' || cachedNames['os_name']) && (<option value="os_name">Operating System</option>)}
           {(editItem.name === 'os_architecture' || cachedNames['os_architecture']) && (<option value="os_architecture">Architecture</option>)}
-          {(editItem.name === 'language_name' || cachedNames['language_name']) && (<option value="language_name">Runtime Name</option>)}
-          {(editItem.name === 'language_version' || cachedNames['language_version']) && (<option value="language_version">Runtime Version</option>)}
+          {(editItem.name === 'language' || cachedNames['language']) && (<option value="language">Runtime</option>)}
         </Select>
         <Select size="xs" value={editItem.operator} onChange={(e) => setEditItem(item => ({ ...item, operator: e.target.value as FilterOperator }))}>
           <option value="eq">=</option>
@@ -101,16 +97,12 @@ function FilterGroupItem(props: FilterGroupItemProps) {
   const { groupIndex, filterGroup, color, onFiltersChange, removeFilter, saveFilter, addFilter } = props
   const [allowedNamesMap, setAllowedNamesMap] = useState<CachedNameMap>({
     'name': true,
-    'version_major': true,
-    'version_minor': true,
-    'version_patch': true,
-    'version_tag': true,
+    'version': true,
     'version_build': true,
     'version_date': true,
     'os_name': true,
     'os_architecture': true,
-    'language_name': true,
-    'language_version': true
+    'language': true
   })
 
   useEffect(() => {

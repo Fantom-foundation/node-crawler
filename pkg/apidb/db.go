@@ -2,6 +2,7 @@ package apidb
 
 import (
 	"database/sql"
+	"fmt"
 	"sort"
 	"time"
 
@@ -15,16 +16,12 @@ func InitDB(db *sql.DB) error {
 		CREATE TABLE IF NOT EXISTS nodes (
 			ID                  VARCHAR(66) NOT NULL,
 			name                TEXT,
-			version_major       INTEGER,
-			version_minor       INTEGER,
-			version_patch       INTEGER,
-			version_tag         TEXT,
+			version             TEXT,
 			version_build       TEXT,
 			version_date        TEXT,
 			os_name             TEXT,
 			os_architecture     TEXT,
-			language_name       TEXT,
-			language_version    TEXT,
+			language            TEXT,
 			last_crawled        DATETIME,
 			country_name        TEXT,
 
@@ -47,32 +44,24 @@ func InsertCrawledNodes(db *sql.DB, crawledNodes []crawlerdb.CrawledNode) error 
 		INSERT INTO nodes(
 			id,
 			name,
-			version_major,
-			version_minor,
-			version_patch,
-			version_tag,
+			version,
 			version_build,
 			version_date,
 			os_name,
 			os_architecture,
-			language_name,
-			language_version,
+			language,
 			last_crawled,
 			country_name
 		)
-		VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?) AS new
+		VALUES (?,?,?,?,?,?,?,?,?,?) AS new
 		ON DUPLICATE KEY UPDATE
 			name = new.name,
-			version_major = new.version_major,
-			version_minor = new.version_minor,
-			version_patch = new.version_patch,
-			version_tag = new.version_tag,
+			version = new.version,
 			version_build = new.version_build,
 			version_date = new.version_date,
 			os_name = new.os_name,
 			os_architecture = new.os_architecture,
-			language_name = new.language_name,
-			language_version = new.language_version,
+			language = new.language,
 			last_crawled = new.last_crawled,
 			country_name = new.country_name
 	`)
@@ -93,16 +82,12 @@ func InsertCrawledNodes(db *sql.DB, crawledNodes []crawlerdb.CrawledNode) error 
 			_, err = stmt.Exec(
 				node.ID,
 				parsed.Name,
-				parsed.Version.Major,
-				parsed.Version.Minor,
-				parsed.Version.Patch,
-				parsed.Version.Tag,
+				fmt.Sprintf("%d.%d.%d-%s", parsed.Version.Major, parsed.Version.Minor, parsed.Version.Patch, parsed.Version.Tag),
 				parsed.Version.Build,
 				parsed.Version.Date,
 				parsed.Os.Os,
 				parsed.Os.Architecture,
-				parsed.Language.Name,
-				parsed.Language.Version,
+				fmt.Sprintf("%s-%s", parsed.Language.Name, parsed.Language.Version),
 				node.Now,
 				node.Country,
 			)
