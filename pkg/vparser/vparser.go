@@ -71,6 +71,8 @@ func ParseVersionString(input string) *ParsedInfo {
 		output.Version = parseVersion(s[1])
 		output.Os = parseOS(s[2])
 		output.Language = parseLanguage(s[3])
+	} else if parts == 2 {
+		output.Version = parseVersion(s[1])
 	} else {
 		output.Name = input
 	}

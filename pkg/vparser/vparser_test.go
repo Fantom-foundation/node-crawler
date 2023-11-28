@@ -22,6 +22,18 @@ func TestParseVersionString(t *testing.T) {
 			},
 		},
 		{
+			name: "bare",
+			args: "go-opera/v1.1.1",
+			want: &ParsedInfo{
+				Name: "go-opera",
+				Version: Version{
+					Major: 1,
+					Minor: 1,
+					Patch: 1,
+				},
+			},
+		},
+		{
 			name: "perfect-case",
 			args: "go-opera/v1.1.2-rc.6-825a85c9-1689192286/linux-amd64/go1.20.4",
 			want: &ParsedInfo{
